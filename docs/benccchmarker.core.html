@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>benccchmarker.core package &mdash; benccchmarker  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            benccchmarker
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">benccchmarker.core package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-benccchmarker.core.benchmarker">benccchmarker.core.benchmarker module</a><ul>
+<li><a class="reference internal" href="#benccchmarker.core.benchmarker.Benchmarker"><code class="docutils literal notranslate"><span class="pre">Benchmarker</span></code></a><ul>
+<li><a class="reference internal" href="#benccchmarker.core.benchmarker.Benchmarker.get_results"><code class="docutils literal notranslate"><span class="pre">Benchmarker.get_results()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.core.benchmarker.Benchmarker.run"><code class="docutils literal notranslate"><span class="pre">Benchmarker.run()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.core.benchmarker.Benchmarker.set_results"><code class="docutils literal notranslate"><span class="pre">Benchmarker.set_results()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#benccchmarker-core-comparator-module">benccchmarker.core.comparator module</a></li>
+<li><a class="reference internal" href="#module-benccchmarker.core.data_generator">benccchmarker.core.data_generator module</a><ul>
+<li><a class="reference internal" href="#benccchmarker.core.data_generator.DataGenerator"><code class="docutils literal notranslate"><span class="pre">DataGenerator</span></code></a><ul>
+<li><a class="reference internal" href="#benccchmarker.core.data_generator.DataGenerator.simulate_denovo"><code class="docutils literal notranslate"><span class="pre">DataGenerator.simulate_denovo()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.core.data_generator.DataGenerator.simulate_from_reference"><code class="docutils literal notranslate"><span class="pre">DataGenerator.simulate_from_reference()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-benccchmarker.core">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">benccchmarker</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">benccchmarker.core package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/benccchmarker.core.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="benccchmarker-core-package">
+<h1>benccchmarker.core package<a class="headerlink" href="#benccchmarker-core-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-benccchmarker.core.benchmarker">
+<span id="benccchmarker-core-benchmarker-module"></span><h2>benccchmarker.core.benchmarker module<a class="headerlink" href="#module-benccchmarker.core.benchmarker" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="benccchmarker.core.benchmarker.Benchmarker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">benccchmarker.core.benchmarker.</span></span><span class="sig-name descname"><span class="pre">Benchmarker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth_file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_truth_data_params_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/benchmarker.html#Benchmarker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.benchmarker.Benchmarker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Benchmarker class allows to compare the prediction file with the ground truth
+data from simulated datasets or curated datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prediction_file_path</strong> (<em>str</em>) – Path to the prediction file by the methods you’re running the dataset on,
+When performing this make sure that you also have the ground_truth to validate
+the prediction on, otherwise this will fail. Prediction file should contain
+‘sender’, ‘receiver’, ‘ligand’, ‘receptor’ columns.</p></li>
+<li><p><strong>ground_truth_file_path</strong> (<em>str</em>) – Path to the ground truth data file, this file is generated by the data_generator
+module and contains ‘sender’, ‘receiver’, ‘ligand’, ‘receptor’ columns as well as
+‘label’ column. Or if you want to use your own ground truth data, make sure it has
+the same columns as the generated ground truth data.</p></li>
+<li><p><strong>ground_truth_data_params</strong> (<em>str</em>) – Path to the ground truth data parameters file. This file is generated by the data_generator module and contains all of the parameters used to generate the ground truth data.</p></li>
+<li><p><strong>output_dir</strong> (<em>str</em>) – Path to the output directory where the results will be saved.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="benccchmarker.core.benchmarker.Benchmarker.get_results">
+<span class="sig-name descname"><span class="pre">get_results</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/benchmarker.html#Benchmarker.get_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.benchmarker.Benchmarker.get_results" title="Link to this definition"></a></dt>
+<dd><p>Get the results of the benchmarking</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="benccchmarker.core.benchmarker.Benchmarker.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/benchmarker.html#Benchmarker.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.benchmarker.Benchmarker.run" title="Link to this definition"></a></dt>
+<dd><p>Compare the loaded prediction to the ground truth that is available</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="benccchmarker.core.benchmarker.Benchmarker.set_results">
+<span class="sig-name descname"><span class="pre">set_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/benchmarker.html#Benchmarker.set_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.benchmarker.Benchmarker.set_results" title="Link to this definition"></a></dt>
+<dd><p>Set the results of the benchmarking</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="benccchmarker-core-comparator-module">
+<h2>benccchmarker.core.comparator module<a class="headerlink" href="#benccchmarker-core-comparator-module" title="Link to this heading"></a></h2>
+</section>
+<section id="module-benccchmarker.core.data_generator">
+<span id="benccchmarker-core-data-generator-module"></span><h2>benccchmarker.core.data_generator module<a class="headerlink" href="#module-benccchmarker.core.data_generator" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="benccchmarker.core.data_generator.DataGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">benccchmarker.core.data_generator.</span></span><span class="sig-name descname"><span class="pre">DataGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_lr_pair_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/data_generator.html#DataGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.data_generator.DataGenerator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>DataGenerator class for generating both denovo simulated data and simulated data from reference of single-cell RNA-seq data with
+injected cell-to-cell communication.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>top_lr_pair_path</strong> (<em>str</em>) – Path to the file containing ligand-receptor pairs.</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – Random seed.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="benccchmarker.core.data_generator.DataGenerator.simulate_denovo">
+<span class="sig-name descname"><span class="pre">simulate_denovo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_genes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_lr_pairs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cell_types</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'overexpression'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overexpression_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_expression</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_sd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">be_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift_by_mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">differential_interaction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'simulated_data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lherhe'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_control</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/data_generator.html#DataGenerator.simulate_denovo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.data_generator.DataGenerator.simulate_denovo" title="Link to this definition"></a></dt>
+<dd><p>Simulate single-cell RNA-seq data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_cells</strong> (<em>int</em>) – Number of cells to simulate.</p></li>
+<li><p><strong>num_genes</strong> (<em>int</em>) – Number of genes to simulate.</p></li>
+<li><p><strong>num_lr_pairs</strong> (<em>int</em>) – Number of ligand-receptor pairs to simulate.</p></li>
+<li><p><strong>num_cell_types</strong> (<em>int</em>) – Number of cell types to simulate.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Method to simulate data. “overexpression” will simulate the overexpression of
+ligand-receptor genes. “zero” will zero out the expression values
+of the non ligand-receptor genes.</p></li>
+<li><p><strong>overexpression_scale</strong> (<em>float</em>) – Scale factor for overexpressing ligand-receptor pairs. Required if method is “overexpression”.</p></li>
+<li><p><strong>mean_expression</strong> (<em>float</em>) – Mean expression level.</p></li>
+<li><p><strong>dispersion</strong> (<em>float</em>) – Dispersion parameter.</p></li>
+<li><p><strong>num_batch</strong> (<em>int</em>) – Number of batches to simulate.</p></li>
+<li><p><strong>batch_factor</strong> (<em>float</em>) – Batch factor to scale the expression values.</p></li>
+<li><p><strong>batch_mean</strong> (<em>float</em>) – Mean value to shift the expression values.</p></li>
+<li><p><strong>batch_sd</strong> (<em>float</em>) – Standard deviation value to shift the expression values.</p></li>
+<li><p><strong>be_method</strong> (<em>str</em>) – Batch effect method. “scale” will scale the expression values. “shift_by_sd” will shift the expression values by a random number sampled from normal distribution. “shift_by_mean” will shift the expression values by a random number sampled from normal distribution.</p></li>
+<li><p><strong>output_path</strong> (<em>str</em>) – Path to save the output file.</p></li>
+<li><p><strong>output_filename</strong> (<em>str</em>) – Name of the output file.</p></li>
+<li><p><strong>scenario</strong> (<em>str</em>) – Name of the scenario to simulate the gene expression.
+“lherhe” means “Ligand is Highly Expressed, Receptor is Highly Expressed”.
+“lmerhe” means “Ligand is Moderately Expressed, Receptor is Highly Expressed”.
+“lherme” means “Ligand is Highly Expressed, Receptor is Moderately Expressed”.</p></li>
+<li><p><strong>add_control</strong> (<em>bool</em>) – Add control genes to the simulated data.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="benccchmarker.core.data_generator.DataGenerator.simulate_from_reference">
+<span class="sig-name descname"><span class="pre">simulate_from_reference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_type_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cell_type'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_lr_pairs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overexpression_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'out'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'synthetic_data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_sd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">be_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'shift_by_mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scenario</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/core/data_generator.html#DataGenerator.simulate_from_reference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.core.data_generator.DataGenerator.simulate_from_reference" title="Link to this definition"></a></dt>
+<dd><p>Synthesise single-cell RNA-seq data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adata</strong> (<em>anndata.AnnData</em>) – Anndata object.</p></li>
+<li><p><strong>num_cells</strong> (<em>int</em>) – Number of cells to synthesize.</p></li>
+<li><p><strong>num_lr_pairs</strong> (<em>int</em>) – Number of ligand-receptor pairs to synthesize.</p></li>
+<li><p><strong>overexpression_scale</strong> (<em>float</em>) – Scale factor for overexpressing ligand-receptor pairs.</p></li>
+<li><p><strong>output_path</strong> (<em>str</em>) – Path to save the output file.</p></li>
+<li><p><strong>output_filename</strong> (<em>str</em>) – Name of the output file.</p></li>
+<li><p><strong>scenario</strong> (<em>str</em>) – Name of the scenario to synthesize the gene expression.
+“default” will synthesize the gene expression based on the ligand-receptor pairs in the anndata object.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-benccchmarker.core">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-benccchmarker.core" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Haries Ramdhani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

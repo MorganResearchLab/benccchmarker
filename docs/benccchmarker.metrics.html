@@ -1,0 +1,245 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>benccchmarker.metrics package &mdash; benccchmarker  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            benccchmarker
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">benccchmarker.metrics package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-benccchmarker.metrics.classification">benccchmarker.metrics.classification module</a><ul>
+<li><a class="reference internal" href="#benccchmarker.metrics.classification.calculate_accuracy_score"><code class="docutils literal notranslate"><span class="pre">calculate_accuracy_score()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.classification.calculate_auc_score"><code class="docutils literal notranslate"><span class="pre">calculate_auc_score()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.classification.calculate_f1_score"><code class="docutils literal notranslate"><span class="pre">calculate_f1_score()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.classification.calculate_sensitivity_score"><code class="docutils literal notranslate"><span class="pre">calculate_sensitivity_score()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.classification.calculate_specificity_score"><code class="docutils literal notranslate"><span class="pre">calculate_specificity_score()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-benccchmarker.metrics.similarity">benccchmarker.metrics.similarity module</a><ul>
+<li><a class="reference internal" href="#benccchmarker.metrics.similarity.calculate_dissimilarity"><code class="docutils literal notranslate"><span class="pre">calculate_dissimilarity()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.similarity.calculate_jaccard_coefficient"><code class="docutils literal notranslate"><span class="pre">calculate_jaccard_coefficient()</span></code></a></li>
+<li><a class="reference internal" href="#benccchmarker.metrics.similarity.calculate_overlapped_elements"><code class="docutils literal notranslate"><span class="pre">calculate_overlapped_elements()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-benccchmarker.metrics">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">benccchmarker</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">benccchmarker.metrics package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/benccchmarker.metrics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="benccchmarker-metrics-package">
+<h1>benccchmarker.metrics package<a class="headerlink" href="#benccchmarker-metrics-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-benccchmarker.metrics.classification">
+<span id="benccchmarker-metrics-classification-module"></span><h2>benccchmarker.metrics.classification module<a class="headerlink" href="#module-benccchmarker.metrics.classification" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.classification.calculate_accuracy_score">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.classification.</span></span><span class="sig-name descname"><span class="pre">calculate_accuracy_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/classification.html#calculate_accuracy_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.classification.calculate_accuracy_score" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.classification.calculate_auc_score">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.classification.</span></span><span class="sig-name descname"><span class="pre">calculate_auc_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/classification.html#calculate_auc_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.classification.calculate_auc_score" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Area Under the Receiver Operating Characteristic Curve (AUC) score.</p>
+<p><a href="#id1"><span class="problematic" id="id2">*</span></a>AUC is a common metric used to evaluate the performance of a binary classification model.
+It measures the area under the ROC curve, which plots the true positive rate against
+the false positive rate at various classification thresholds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ground_truth</strong> (<em>array-like</em><em> of </em><em>shape</em><em> (</em><em>n_samples</em><em>,</em><em>)</em>) – True binary labels.</p></li>
+<li><p><strong>prediction</strong> (<em>array-like</em><em> of </em><em>shape</em><em> (</em><em>n_samples</em><em>,</em><em>)</em>) – Predicted probabilities or decision values for the positive class.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The AUC score, a value between 0 and 1, with higher values indicating better
+classification performance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.classification.calculate_f1_score">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.classification.</span></span><span class="sig-name descname"><span class="pre">calculate_f1_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/classification.html#calculate_f1_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.classification.calculate_f1_score" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.classification.calculate_sensitivity_score">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.classification.</span></span><span class="sig-name descname"><span class="pre">calculate_sensitivity_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/classification.html#calculate_sensitivity_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.classification.calculate_sensitivity_score" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.classification.calculate_specificity_score">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.classification.</span></span><span class="sig-name descname"><span class="pre">calculate_specificity_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ground_truth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/classification.html#calculate_specificity_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.classification.calculate_specificity_score" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-benccchmarker.metrics.similarity">
+<span id="benccchmarker-metrics-similarity-module"></span><h2>benccchmarker.metrics.similarity module<a class="headerlink" href="#module-benccchmarker.metrics.similarity" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.similarity.calculate_dissimilarity">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.similarity.</span></span><span class="sig-name descname"><span class="pre">calculate_dissimilarity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/similarity.html#calculate_dissimilarity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.similarity.calculate_dissimilarity" title="Link to this definition"></a></dt>
+<dd><p>Calculate the dissimilarity between two sets based on Pearson correlation coefficient.</p>
+<p>The dissimilarity is computed as 1 minus the Pearson correlation coefficient
+between the two sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set1</strong> (<em>array-like</em>) – The first set or array for Pearson correlation calculation.</p></li>
+<li><p><strong>set2</strong> (<em>array-like</em>) – The second set or array for Pearson correlation calculation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dissimilarity between the two sets, computed as 1 minus the Pearson
+correlation coefficient.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.similarity.calculate_jaccard_coefficient">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.similarity.</span></span><span class="sig-name descname"><span class="pre">calculate_jaccard_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/similarity.html#calculate_jaccard_coefficient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.similarity.calculate_jaccard_coefficient" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Jaccard coefficient between two sets.</p>
+<p>The Jaccard coefficient is a measure of similarity between two sets. It is
+defined as the size of the intersection divided by the size of the union
+of the sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set1</strong> (<em>set</em>) – The first set.</p></li>
+<li><p><strong>set2</strong> (<em>set</em>) – The second set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The Jaccard coefficient between the two sets. Returns 0 if the union
+of sets is empty to avoid division by zero.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="benccchmarker.metrics.similarity.calculate_overlapped_elements">
+<span class="sig-prename descclassname"><span class="pre">benccchmarker.metrics.similarity.</span></span><span class="sig-name descname"><span class="pre">calculate_overlapped_elements</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">set1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/benccchmarker/metrics/similarity.html#calculate_overlapped_elements"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#benccchmarker.metrics.similarity.calculate_overlapped_elements" title="Link to this definition"></a></dt>
+<dd><p>Calculate the number of overlapped elements between two sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>set1</strong> (<em>set</em>) – The first set.</p></li>
+<li><p><strong>set2</strong> (<em>set</em>) – The second set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of elements that are common to both sets.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-benccchmarker.metrics">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-benccchmarker.metrics" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Haries Ramdhani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
