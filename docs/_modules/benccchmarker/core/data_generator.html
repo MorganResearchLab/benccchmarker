@@ -1,0 +1,973 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>benccchmarker.core.data_generator &mdash; benccchmarker  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            benccchmarker
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">benccchmarker</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">benccchmarker.core.data_generator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for benccchmarker.core.data_generator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">anndata</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">scanpy</span> <span class="k">as</span> <span class="nn">sc</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">nbinom</span>
+
+<span class="kn">from</span> <span class="nn">benccchmarker.utils</span> <span class="kn">import</span> <span class="n">convert_anndata_to_seurat</span><span class="p">,</span> <span class="n">get_n_p_from_mean_dispersion</span>
+
+<div class="viewcode-block" id="DataGenerator">
+<a class="viewcode-back" href="../../../benccchmarker.core.html#benccchmarker.core.data_generator.DataGenerator">[docs]</a>
+<span class="k">class</span> <span class="nc">DataGenerator</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    DataGenerator class for generating both denovo simulated data and simulated data from reference of single-cell RNA-seq data with</span>
+<span class="sd">    injected cell-to-cell communication.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    top_lr_pair_path : str</span>
+<span class="sd">        Path to the file containing ligand-receptor pairs.</span>
+<span class="sd">    seed : int  </span>
+<span class="sd">        Random seed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">top_lr_pair_path</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">top_lr_pair_path</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
+            <span class="n">top_lr_pair_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;datasets&quot;</span> <span class="o">/</span> <span class="s2">&quot;lrdb_top_100_pairs.csv&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_lr_pair_path</span> <span class="o">=</span> <span class="n">top_lr_pair_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_pair_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">top_lr_pair_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_pair_df</span><span class="p">[[</span><span class="s2">&quot;ligand&quot;</span><span class="p">,</span> <span class="s2">&quot;receptor&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_pair_df</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;---&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+
+        <span class="c1"># Initialise empty variables to store data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulated_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synthetic_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Create a logger</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+            <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">datefmt</span><span class="o">=</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_check_distribution_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mean_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the mean expression and dispersion parameters are valid.</span>
+<span class="sd">        Raise exception if mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) &lt; 0</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mean_expression : float</span>
+<span class="sd">            Mean expression level.</span>
+<span class="sd">        dispersion : float</span>
+<span class="sd">            Dispersion parameter.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True if the mean expression and dispersion parameters are valid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mean_expression</span> <span class="o">/</span> <span class="p">(</span><span class="n">dispersion</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">mean_expression</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="n">dispersion</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">mean_expression</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Invalid mean expression and dispersion parameters, mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) has to be greater than 0.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid mean expression and dispersion parameters, mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) has to be greater than 0.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_generate_lr_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr_pair_df</span><span class="p">,</span> <span class="n">num_lr_pairs</span><span class="p">,</span> <span class="n">gene_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate ligand-receptor pairs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lr_pair_df : pd.DataFrame</span>
+<span class="sd">            Dataframe containing ligand-receptor pairs.</span>
+<span class="sd">        num_lr_pairs : int</span>
+<span class="sd">            Number of ligand-receptor pairs to generate.</span>
+<span class="sd">        seed : int</span>
+<span class="sd">            Random seed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lr_pairs: dict</span>
+<span class="sd">            Dictionary containing ligand-receptor pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Sample ligand-receptor pairs</span>
+        <span class="n">lr_pair_sample_df</span> <span class="o">=</span> <span class="n">lr_pair_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+            <span class="n">num_lr_pairs</span><span class="p">,</span> 
+            <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Generate ligand-receptor pair dictionary</span>
+        <span class="n">lr_pairs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">ligand</span><span class="p">,</span> <span class="n">receptor</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lr_pair_sample_df</span><span class="p">[[</span><span class="s2">&quot;ligand&quot;</span><span class="p">,</span> <span class="s2">&quot;receptor&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()]:</span>
+            <span class="k">if</span> <span class="n">gene_names</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ligand</span> <span class="ow">in</span> <span class="n">gene_names</span> <span class="ow">and</span> <span class="n">receptor</span> <span class="ow">in</span> <span class="n">gene_names</span><span class="p">:</span>
+                    <span class="n">lr_pairs</span><span class="p">[</span><span class="n">ligand</span><span class="p">]</span> <span class="o">=</span> <span class="n">receptor</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lr_pairs</span><span class="p">[</span><span class="n">ligand</span><span class="p">]</span> <span class="o">=</span> <span class="n">receptor</span>
+        <span class="k">return</span> <span class="n">lr_pairs</span>
+
+    <span class="k">def</span> <span class="nf">_generate_cell_type_labels</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_cells</span><span class="p">,</span>
+        <span class="n">num_cell_types</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate cell type labels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        num_cells : int</span>
+<span class="sd">            Number of cells.</span>
+<span class="sd">        num_cell_types : int</span>
+<span class="sd">            Number of cell types.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            List of cell type labels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">cell_type_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">num_cell_types</span><span class="p">)</span>
+        <span class="n">cell_type_probas</span> <span class="o">=</span> <span class="p">[</span><span class="n">cell_type_weight</span><span class="o">/</span><span class="nb">sum</span><span class="p">(</span><span class="n">cell_type_weights</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell_type_weight</span> <span class="ow">in</span> <span class="n">cell_type_weights</span><span class="p">]</span>
+        <span class="n">cell_type_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_cells</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">cell_type_probas</span><span class="p">)</span>
+        <span class="n">cell_type_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CellType</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">cell_type_labels</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">cell_type_labels</span>
+
+    <span class="k">def</span> <span class="nf">_generate_source_target_pairs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_cell_types</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate source target pairs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        num_cell_types : int</span>
+<span class="sd">            Number of cell types.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Array of source target pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">source_target_pairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">)),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">source_target_pairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;cell_</span><span class="si">{</span><span class="n">source_target_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-cell_</span><span class="si">{</span><span class="n">source_target_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">source_target_pair</span> <span class="ow">in</span> <span class="n">source_target_pairs</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">source_target_pairs</span>
+
+    <span class="k">def</span> <span class="nf">_generate_cell_type_receptor_ligand_dict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">cell_types</span><span class="p">,</span>
+        <span class="n">lr_pairs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate cell type receptor ligand dictionary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cell_types : list</span>
+<span class="sd">            List of cell types.</span>
+<span class="sd">        lr_pair_sample_df : pd.DataFrame</span>
+<span class="sd">            Dataframe containing ligand-receptor pairs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary containing cell type receptor ligand pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cell_type_receptor_ligand_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cell_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cell_types</span><span class="p">):</span>
+            <span class="n">ligand_genes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lr_pairs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+
+            <span class="n">cell_type_receptor_ligand_dict</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">cell_type_receptor_ligand_dict</span><span class="p">[</span><span class="n">cell_type</span><span class="p">][</span><span class="s2">&quot;ligands&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ligand_genes</span>
+
+            <span class="c1"># receptor_genes = np.array(lr_pair_sample_df[&quot;receptor&quot;].to_list())</span>
+            <span class="c1"># cell_type_receptor_ligand_dict[cell_type][&quot;receptors&quot;] = receptor_genes</span>
+
+        <span class="k">return</span> <span class="n">cell_type_receptor_ligand_dict</span>
+
+    <span class="k">def</span> <span class="nf">_generate_interaction_maps</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">cell_type_receptor_ligand_dict</span><span class="p">,</span>
+        <span class="n">lr_pairs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate interaction maps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cell_type_receptor_ligand_dict : dict</span>
+<span class="sd">            Dictionary containing cell type receptor ligand pairs.</span>
+<span class="sd">        lr_pairs : dict</span>
+<span class="sd">            Dictionary containing ligand-receptor pairs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        interaction_maps : np.array</span>
+<span class="sd">            Array of interaction maps it looks like this [{&quot;source&quot;: &quot;CellType0&quot;, &quot;target&quot;: &quot;CellType0&quot;, &quot;ligand&quot;: &quot;CCL21&quot;, &quot;receptor&quot;: &quot;ACKR4&quot;}].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">source_cell_type</span> <span class="ow">in</span> <span class="n">cell_type_receptor_ligand_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">target_cell_type</span> <span class="ow">in</span> <span class="n">cell_type_receptor_ligand_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">ligand</span> <span class="ow">in</span> <span class="n">cell_type_receptor_ligand_dict</span><span class="p">[</span><span class="n">source_cell_type</span><span class="p">][</span><span class="s2">&quot;ligands&quot;</span><span class="p">]:</span>
+                    <span class="n">interaction_map</span> <span class="o">=</span> <span class="p">{}</span>
+
+                    <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">source_cell_type</span>
+                    <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_cell_type</span>
+                    <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ligand</span>
+                    <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lr_pairs</span><span class="p">[</span><span class="n">ligand</span><span class="p">]</span>
+
+                    <span class="n">interaction_maps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">interaction_map</span><span class="p">)</span>
+
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">)</span>
+
+        <span class="n">interaction_map_probas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">))</span>
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="n">interaction_maps</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">interaction_map_probas</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="k">return</span> <span class="n">interaction_maps</span>
+
+    <span class="k">def</span> <span class="nf">_find_lr_genes_intersection</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">adata</span><span class="p">,</span>
+        <span class="n">lrdb_path</span><span class="o">=</span><span class="s2">&quot;default&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the intersection of ligand-receptor genes in the anndata object and the ligand-receptor database.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        adata : anndata.AnnData</span>
+<span class="sd">            Anndata object.</span>
+<span class="sd">        lrdb_path : str</span>
+<span class="sd">            Path to the ligand-receptor database.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lr_genes_in_matrix : list</span>
+<span class="sd">            List of ligand-receptor genes in the anndata object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">lrdb_path</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
+            <span class="n">lrdb_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;datasets&quot;</span> <span class="o">/</span> <span class="s2">&quot;lrdb_key.parquet.gzip&quot;</span>
+
+        <span class="n">lrdb</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">lrdb_path</span><span class="p">)</span>
+        <span class="n">lr_genes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lrdb</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lrdb</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]))))</span>
+        <span class="n">lr_genes</span> <span class="o">=</span> <span class="p">[</span><span class="n">lr_gene</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">lr_gene</span> <span class="ow">in</span> <span class="n">lr_genes</span><span class="p">]</span>
+        <span class="n">lr_genes_in_matrix</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lr_genes</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">adata</span><span class="o">.</span><span class="n">var_names</span><span class="o">.</span><span class="n">to_list</span><span class="p">()))))</span>
+        
+        <span class="k">return</span> <span class="n">lr_genes_in_matrix</span>
+
+    <span class="k">def</span> <span class="nf">_generate_ground_truth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interaction_maps</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate ground truth dataframe from interaction maps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        interaction_maps : np.array</span>
+<span class="sd">            Array of interaction maps.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ground_truth_df : pd.DataFrame</span>
+<span class="sd">            Dataframe containing ground truth of cell-to-cell communication.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ground_truth_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">interaction_maps</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">ground_truth_df</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ground_truth_df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">row</span><span class="p">:</span> <span class="s1">&#39;---&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ground_truth_df</span>
+
+<div class="viewcode-block" id="DataGenerator.simulate_denovo">
+<a class="viewcode-back" href="../../../benccchmarker.core.html#benccchmarker.core.data_generator.DataGenerator.simulate_denovo">[docs]</a>
+    <span class="k">def</span> <span class="nf">simulate_denovo</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_cells</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+        <span class="n">num_genes</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">num_lr_pairs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">num_cell_types</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;overexpression&quot;</span><span class="p">,</span>
+        <span class="n">overexpression_scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">mean_expression</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">dispersion</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">num_batch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">batch_mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">batch_sd</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">be_method</span><span class="o">=</span><span class="s2">&quot;shift_by_mean&quot;</span><span class="p">,</span>
+        <span class="n">differential_interaction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;out&quot;</span><span class="p">,</span>
+        <span class="n">output_filename</span><span class="o">=</span><span class="s2">&quot;simulated_data&quot;</span><span class="p">,</span>
+        <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;lherhe&quot;</span><span class="p">,</span>
+        <span class="n">add_control</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate single-cell RNA-seq data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        num_cells : int</span>
+<span class="sd">            Number of cells to simulate.</span>
+<span class="sd">        num_genes : int</span>
+<span class="sd">            Number of genes to simulate.</span>
+<span class="sd">        num_lr_pairs : int</span>
+<span class="sd">            Number of ligand-receptor pairs to simulate.</span>
+<span class="sd">        num_cell_types : int</span>
+<span class="sd">            Number of cell types to simulate.</span>
+<span class="sd">        method : str</span>
+<span class="sd">            Method to simulate data. &quot;overexpression&quot; will simulate the overexpression of</span>
+<span class="sd">            ligand-receptor genes. &quot;zero&quot; will zero out the expression values</span>
+<span class="sd">            of the non ligand-receptor genes.</span>
+<span class="sd">        overexpression_scale : float</span>
+<span class="sd">            Scale factor for overexpressing ligand-receptor pairs. Required if method is &quot;overexpression&quot;.</span>
+<span class="sd">        mean_expression : float</span>
+<span class="sd">            Mean expression level.</span>
+<span class="sd">        dispersion : float</span>
+<span class="sd">            Dispersion parameter.</span>
+<span class="sd">        num_batch : int</span>
+<span class="sd">            Number of batches to simulate.</span>
+<span class="sd">        batch_factor : float</span>
+<span class="sd">            Batch factor to scale the expression values.</span>
+<span class="sd">        batch_mean : float</span>
+<span class="sd">            Mean value to shift the expression values.</span>
+<span class="sd">        batch_sd : float</span>
+<span class="sd">            Standard deviation value to shift the expression values.</span>
+<span class="sd">        be_method : str</span>
+<span class="sd">            Batch effect method. &quot;scale&quot; will scale the expression values. &quot;shift_by_sd&quot; will shift the expression values by a random number sampled from normal distribution. &quot;shift_by_mean&quot; will shift the expression values by a random number sampled from normal distribution.</span>
+<span class="sd">        output_path : str</span>
+<span class="sd">            Path to save the output file.</span>
+<span class="sd">        output_filename : str</span>
+<span class="sd">            Name of the output file.</span>
+<span class="sd">        scenario : str</span>
+<span class="sd">            Name of the scenario to simulate the gene expression. </span>
+<span class="sd">            &quot;lherhe&quot; means &quot;Ligand is Highly Expressed, Receptor is Highly Expressed&quot;.</span>
+<span class="sd">            &quot;lmerhe&quot; means &quot;Ligand is Moderately Expressed, Receptor is Highly Expressed&quot;. </span>
+<span class="sd">            &quot;lherme&quot; means &quot;Ligand is Highly Expressed, Receptor is Moderately Expressed&quot;.</span>
+<span class="sd">        add_control : bool</span>
+<span class="sd">            Add control genes to the simulated data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Make sure num_lr_pairs is always greater than num_genes, otherwise raise an exception</span>
+        <span class="k">if</span> <span class="n">num_lr_pairs</span> <span class="o">&gt;</span> <span class="n">num_genes</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;num_lr_pairs has to be lower than num_genes.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;num_lr_pairs has to be lower than num_genes.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+
+        <span class="c1"># Check if the mean expression and dispersion parameters are valid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_distribution_parameters</span><span class="p">(</span><span class="n">mean_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)</span>
+
+        <span class="c1"># Sample ligand-receptor pairs based on the number of ligand-receptor pairs input</span>
+        <span class="n">lr_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_lr_pairs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_pair_df</span><span class="p">,</span> <span class="n">num_lr_pairs</span><span class="p">)</span>
+
+        <span class="n">lr_genes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="n">lr_pairs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="nb">list</span><span class="p">(</span><span class="n">lr_pairs</span><span class="o">.</span><span class="n">values</span><span class="p">())])</span>
+        <span class="n">num_lr_genes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">lr_genes</span><span class="p">))</span>
+
+        <span class="n">cell_types</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CellType</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">)]</span>
+        <span class="n">cell_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;cell_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cells</span><span class="p">)]</span>
+        
+        <span class="n">cell_type_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_cell_type_labels</span><span class="p">(</span><span class="n">num_cells</span><span class="p">,</span> <span class="n">num_cell_types</span><span class="p">)</span>
+
+        <span class="c1"># Generate source target pairs</span>
+        <span class="n">source_target_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_source_target_pairs</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">)</span>
+
+        <span class="c1"># Generte combination of cell types and ligand-receptor pairs</span>
+        <span class="n">cell_type_receptor_ligand_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_cell_type_receptor_ligand_dict</span><span class="p">(</span><span class="n">cell_types</span><span class="p">,</span> <span class="n">lr_pairs</span><span class="p">)</span>
+
+        <span class="c1"># Generate interaction maps</span>
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_interaction_maps</span><span class="p">(</span><span class="n">cell_type_receptor_ligand_dict</span><span class="p">,</span> <span class="n">lr_pairs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">)</span><span class="si">}</span><span class="s2"> interactions&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Generate anndata</span>
+        <span class="n">expression_levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_cells</span><span class="p">,</span> <span class="n">num_lr_genes</span><span class="p">))</span>
+
+        <span class="n">gene_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="n">lr_pairs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="nb">list</span><span class="p">(</span><span class="n">lr_pairs</span><span class="o">.</span><span class="n">values</span><span class="p">())]))</span>
+        
+        <span class="n">simulated_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">expression_levels</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">gene_labels</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">cell_type_labels</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">scenario</span> <span class="o">==</span> <span class="s2">&quot;lherhe&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">interaction_map</span> <span class="ow">in</span> <span class="n">interaction_maps</span><span class="p">:</span>
+                <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">],</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+                <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">],</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+        <span class="k">elif</span> <span class="n">scenario</span> <span class="o">==</span> <span class="s2">&quot;lhemhe&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">interaction_map</span> <span class="ow">in</span> <span class="n">interaction_maps</span><span class="p">:</span>
+                <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">],</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">interaction_map</span> <span class="ow">in</span> <span class="n">interaction_maps</span><span class="p">:</span>
+                <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">],</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+
+        <span class="c1"># IGNORE THIS PART OF THE CODE FOR NOW WILL HAVE IT IN THE NEARBY FUTURE RELEASES</span>
+        <span class="n">modified_simulated_df</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">condition_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">cell_labels</span><span class="p">))</span>
+
+        <span class="c1"># if differential_interaction:</span>
+
+        <span class="c1">#     condition_labels = np.random.choice(range(2), len(cell_labels))</span>
+        <span class="c1">#     simulated_df[&quot;condition&quot;] = condition_labels</span>
+
+        <span class="c1">#     non_differential_interaction_map_probas = np.random.uniform(0, 1, len(interaction_maps))</span>
+        <span class="c1">#     non_differential_interaction_maps = interaction_maps[np.argwhere(non_differential_interaction_map_probas &gt; 0.5).T[0]]</span>
+
+        <span class="c1">#     differential_interaction_maps = interaction_maps[np.argwhere(non_differential_interaction_map_probas &lt;= 0.5).T[0]]</span>
+
+        <span class="c1">#     # Remove element from non_differential_interaction_maps if both the source and ligand are in the differential_interaction_maps or if both the target and receptor are in the differential_interaction_maps</span>
+
+        <span class="c1">#     print(f&quot;{len(non_differential_interaction_maps)} which are differential interactions&quot;)</span>
+
+        <span class="c1">#     print(non_differential_interaction_maps)</span>
+
+        <span class="c1">#     non_differential_interaction_maps = [interaction_map for interaction_map in non_differential_interaction_maps if (interaction_map[&quot;source&quot;] not in [interaction[&quot;source&quot;] for interaction in differential_interaction_maps] and interaction_map[&quot;ligand&quot;] not in [interaction[&quot;ligand&quot;] for interaction in differential_interaction_maps]) or (interaction_map[&quot;target&quot;] not in [interaction[&quot;target&quot;] for interaction in differential_interaction_maps] and interaction_map[&quot;receptor&quot;] not in [interaction[&quot;receptor&quot;] for interaction in differential_interaction_maps])]</span>
+
+        <span class="c1">#     print(f&quot;{len(non_differential_interaction_maps)} which are non differential interactions&quot;)</span>
+
+        <span class="c1">#     # Save differential_interaction_maps into a .json file</span>
+        <span class="c1">#     with open(f&quot;{output_path}/{output_filename}_differential_interaction_maps.json&quot;, &quot;w&quot;) as f:</span>
+        <span class="c1">#         json.dump(differential_interaction_maps.tolist(), f)</span>
+
+        <span class="c1">#     with open(f&quot;{output_path}/{output_filename}_non_differential_interaction_maps.json&quot;, &quot;w&quot;) as f:</span>
+        <span class="c1">#         json.dump(non_differential_interaction_maps.tolist(), f)</span>
+
+        <span class="c1">#     if scenario == &quot;lherhe&quot;:</span>
+        <span class="c1">#         for interaction_map in differential_interaction_maps:</span>
+        <span class="c1">#             modified_simulated_df.loc[(simulated_df.index == interaction_map[&quot;source&quot;]) &amp; ( simulated_df[&quot;condition&quot;] == 0), interaction_map[&quot;ligand&quot;]] = 0</span>
+        <span class="c1">#             modified_simulated_df.loc[(simulated_df.index == interaction_map[&quot;target&quot;]) &amp; ( simulated_df[&quot;condition&quot;] == 1), interaction_map[&quot;receptor&quot;]] = 0</span>
+        <span class="c1">#     elif scenario == &quot;lhemhe&quot;:</span>
+        <span class="c1">#         for interaction_map in differential_interaction_maps:</span>
+        <span class="c1">#             modified_simulated_df.loc[(simulated_df.index == interaction_map[&quot;source&quot;]) &amp; ( simulated_df[&quot;condition&quot;] == 0), interaction_map[&quot;ligand&quot;]] = 0</span>
+        <span class="c1">#     else:</span>
+        <span class="c1">#         for interaction_map in differential_interaction_maps:</span>
+        <span class="c1">#             modified_simulated_df.loc[(simulated_df.index == interaction_map[&quot;target&quot;]) &amp; ( simulated_df[&quot;condition&quot;] == 1), interaction_map[&quot;receptor&quot;]] = 0</span>
+        
+        <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">get_n_p_from_mean_dispersion</span><span class="p">(</span><span class="n">mean_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)</span>
+        <span class="n">modified_simulated_df</span> <span class="o">=</span> <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">nbinom</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="n">mean_altered_expression</span> <span class="o">=</span> <span class="n">mean_expression</span> <span class="o">*</span> <span class="n">overexpression_scale</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">get_n_p_from_mean_dispersion</span><span class="p">(</span><span class="n">mean_altered_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)</span>
+
+        <span class="n">modified_simulated_df</span> <span class="o">=</span> <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">nbinom</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="o">-</span><span class="mi">999</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="n">modified_simulated_df</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">condition_labels</span>
+        <span class="n">simulated_df</span> <span class="o">=</span> <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>        
+        <span class="n">simulated_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">add_control</span><span class="p">:</span>
+            <span class="n">non_lr_gene_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;datasets&quot;</span> <span class="o">/</span> <span class="s2">&quot;non_lr_genes_sample.csv&quot;</span>
+            <span class="n">non_lr_gene_names_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">non_lr_gene_path</span><span class="p">)</span>
+
+            <span class="n">non_lr_genes</span> <span class="o">=</span> <span class="n">non_lr_gene_names_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">num_genes</span> <span class="o">-</span> <span class="n">num_lr_genes</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)[</span><span class="s2">&quot;gene&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+            <span class="n">markers</span> <span class="o">=</span> <span class="n">non_lr_genes</span><span class="p">[:</span><span class="n">num_cell_types</span><span class="p">]</span>
+            <span class="n">cell_type_markers</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="n">markers</span><span class="p">:</span>
+                <span class="n">simulated_df</span><span class="p">[</span><span class="n">marker</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cell_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cell_types</span><span class="p">):</span>
+                <span class="n">cell_type_markers</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">markers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            
+            <span class="c1"># Save cell_type_markers into a .json file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_cell_type_markers.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">cell_type_markers</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">cell_type</span> <span class="ow">in</span> <span class="n">cell_types</span><span class="p">:</span>
+                <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">get_n_p_from_mean_dispersion</span><span class="p">(</span><span class="n">mean_altered_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)</span>
+                <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cell_type</span><span class="p">,</span> <span class="n">cell_type_markers</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]]</span> <span class="o">=</span> <span class="n">nbinom</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">cell_type</span><span class="p">,</span> <span class="n">cell_type_markers</span><span class="p">[</span><span class="n">cell_type</span><span class="p">]]))</span>
+
+            <span class="n">n</span><span class="p">,</span><span class="n">p</span> <span class="o">=</span> <span class="n">get_n_p_from_mean_dispersion</span><span class="p">(</span><span class="n">mean_expression</span><span class="p">,</span> <span class="n">dispersion</span><span class="p">)</span>
+            <span class="n">simulated_df</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">nbinom</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+            <span class="c1"># create new columns from non_lr_genes[num_cell_types:] and append it to the simulated_df with value of nbinom.rvs(n, p)</span>
+            <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">non_lr_genes</span><span class="p">[</span><span class="n">num_cell_types</span><span class="p">:]:</span>
+                <span class="n">simulated_df</span><span class="p">[</span><span class="n">gene</span><span class="p">]</span> <span class="o">=</span> <span class="n">nbinom</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">simulated_df</span><span class="p">))</span>            
+
+        <span class="k">if</span> <span class="n">num_batch</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">cell_types</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="o">.</span><span class="n">index</span>
+
+            <span class="c1"># Generate batch based on num_batch</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_batch</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">cell_types</span><span class="p">))</span>
+
+            <span class="n">modified_simulated_df</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span>
+
+            <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_sd&quot;</span><span class="p">:</span>
+                <span class="n">random_factors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_batch</span><span class="p">)</span> <span class="o">*</span> <span class="n">dispersion</span>
+            
+            <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_mean&quot;</span><span class="p">:</span>
+                <span class="n">random_factors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_batch</span><span class="p">)</span> <span class="o">*</span> <span class="n">mean_expression</span>
+
+            <span class="n">random_factors</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">random_factors</span><span class="p">]</span>
+
+            <span class="c1"># Save random_factors to a file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_random_factors_for_be.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">random_factors</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+            <span class="n">modified_simulated_dfs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batch</span><span class="p">):</span>
+
+                <span class="c1"># Multiplies the expression values of each batch by a factor (scaling)</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span>
+                    <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_factor</span>
+
+                <span class="c1"># Add by a random number sampled from normal distribution (shifting)</span>
+                <span class="c1"># Changing sd</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_sd&quot;</span><span class="p">:</span>
+
+                    <span class="n">random_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">batch_mean</span><span class="p">,</span> <span class="n">random_factors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+                    <span class="c1"># Save random_vector to a file</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_random_vector_for_be.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">random_vector</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">f</span><span class="p">)</span>
+                    
+                    <span class="c1"># Convert random_vector to int</span>
+                    <span class="n">random_vector</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">random_vector</span><span class="p">]</span>
+
+                    <span class="n">random_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">random_vector</span><span class="p">,</span> <span class="p">(</span><span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+
+                    <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">random_matrix</span>
+                    
+                <span class="c1"># Changing mean</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_mean&quot;</span><span class="p">:</span>
+                    
+                    <span class="n">random_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">random_factors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">,</span> <span class="n">batch_sd</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+                    <span class="c1"># Save random_vector to a file</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_random_vector_for_be.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">random_vector</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">f</span><span class="p">)</span>
+                    
+                    <span class="c1"># Convert random_vector to int</span>
+                    <span class="n">random_vector</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">random_vector</span><span class="p">]</span>
+
+                    <span class="n">random_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">random_vector</span><span class="p">,</span> <span class="p">(</span><span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+
+                    <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">random_matrix</span>
+
+                <span class="c1"># Add a constant value (shifting non random)</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_constant&quot;</span><span class="p">:</span>
+                    <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_factor</span>
+            
+            <span class="n">simulated_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_batches.csv&quot;</span><span class="p">)</span>
+
+            <span class="n">batch_labels</span> <span class="o">=</span> <span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+            <span class="n">batch_label_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">simulated_df</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">])</span>
+            <span class="n">batch_label_df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">cell_labels</span>
+
+            <span class="n">batch_label_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_batch_labels.csv&quot;</span><span class="p">)</span>
+            <span class="n">simulated_df</span> <span class="o">=</span> <span class="n">modified_simulated_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="c1"># Convert any negative values to 0</span>
+            <span class="n">simulated_df</span><span class="p">[</span><span class="n">simulated_df</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Drop batch column</span>
+        <span class="n">simulated_df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">cell_labels</span>
+
+        <span class="n">adata</span> <span class="o">=</span> <span class="n">anndata</span><span class="o">.</span><span class="n">AnnData</span><span class="p">(</span><span class="n">simulated_df</span><span class="p">)</span>
+        <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cell_type_labels</span>
+
+        <span class="k">if</span> <span class="n">num_batch</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_labels</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">differential_interaction</span><span class="p">:</span>
+            <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">condition_labels</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;condition&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            
+        <span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">adata</span><span class="o">.</span><span class="n">write_h5ad</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s1">.h5ad&#39;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulated data saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">.h5ad&quot;</span><span class="p">)</span>
+
+        <span class="n">ground_truth_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_ground_truth</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">)</span>
+        <span class="n">ground_truth_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_ground_truth.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ground truth saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/simulation/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_ground_truth.csv&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulated_data</span> <span class="o">=</span> <span class="n">adata</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Converting AnnData object to Seurat object&quot;</span><span class="p">)</span>
+
+        <span class="n">convert_anndata_to_seurat</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">.h5ad&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_seurat.rds&quot;</span>
+        <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s1">_seurat.rds&#39;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conversion complete. The Seurat object is saved as &#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_seurat.rds&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Conversion failed. Please check the output path.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Save the parameters to a new file called data_params.json</span>
+        <span class="n">data_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;num_cells&quot;</span><span class="p">:</span> <span class="n">num_cells</span><span class="p">,</span>
+            <span class="s2">&quot;num_genes&quot;</span><span class="p">:</span> <span class="n">num_genes</span><span class="p">,</span>
+            <span class="s2">&quot;num_lr_pairs&quot;</span><span class="p">:</span> <span class="n">num_lr_pairs</span><span class="p">,</span>
+            <span class="s2">&quot;num_cell_types&quot;</span><span class="p">:</span> <span class="n">num_cell_types</span><span class="p">,</span>
+            <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span>
+            <span class="s2">&quot;overexpression_scale&quot;</span><span class="p">:</span> <span class="n">overexpression_scale</span><span class="p">,</span>
+            <span class="s2">&quot;mean_expression&quot;</span><span class="p">:</span> <span class="n">mean_expression</span><span class="p">,</span>
+            <span class="s2">&quot;dispersion&quot;</span><span class="p">:</span> <span class="n">dispersion</span><span class="p">,</span>
+            <span class="s2">&quot;num_batch&quot;</span><span class="p">:</span> <span class="n">num_batch</span><span class="p">,</span>
+            <span class="s2">&quot;batch_factor&quot;</span><span class="p">:</span> <span class="n">batch_factor</span><span class="p">,</span>
+            <span class="s2">&quot;batch_mean&quot;</span><span class="p">:</span> <span class="n">batch_mean</span><span class="p">,</span>
+            <span class="s2">&quot;batch_sd&quot;</span><span class="p">:</span> <span class="n">batch_sd</span><span class="p">,</span>
+            <span class="s2">&quot;be_method&quot;</span><span class="p">:</span> <span class="n">be_method</span><span class="p">,</span>
+            <span class="s2">&quot;differential_interaction&quot;</span><span class="p">:</span> <span class="n">differential_interaction</span><span class="p">,</span>
+            <span class="s2">&quot;output_path&quot;</span><span class="p">:</span> <span class="n">output_path</span><span class="p">,</span>
+            <span class="s2">&quot;output_filename&quot;</span><span class="p">:</span> <span class="n">output_filename</span><span class="p">,</span>
+            <span class="s2">&quot;num_batch&quot;</span><span class="p">:</span> <span class="n">num_batch</span><span class="p">,</span>
+            <span class="s2">&quot;scenario&quot;</span><span class="p">:</span> <span class="n">scenario</span><span class="p">,</span>
+            <span class="s2">&quot;add_control&quot;</span><span class="p">:</span> <span class="n">add_control</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/data_params.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data_params</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DataGenerator.simulate_from_reference">
+<a class="viewcode-back" href="../../../benccchmarker.core.html#benccchmarker.core.data_generator.DataGenerator.simulate_from_reference">[docs]</a>
+    <span class="k">def</span> <span class="nf">simulate_from_reference</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">adata</span><span class="p">,</span>
+        <span class="n">cell_type_labels</span><span class="o">=</span><span class="s2">&quot;cell_type&quot;</span><span class="p">,</span>
+        <span class="n">num_cells</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_lr_pairs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">overexpression_scale</span><span class="o">=</span><span class="mf">1.25</span><span class="p">,</span>
+        <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;out&quot;</span><span class="p">,</span>
+        <span class="n">output_filename</span><span class="o">=</span><span class="s2">&quot;synthetic_data&quot;</span><span class="p">,</span>
+        <span class="n">num_batch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">batch_sd</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">batch_factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">be_method</span><span class="o">=</span><span class="s2">&quot;shift_by_mean&quot;</span><span class="p">,</span>
+        <span class="n">scenario</span><span class="o">=</span><span class="s2">&quot;default&quot;</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Synthesise single-cell RNA-seq data.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        adata : anndata.AnnData</span>
+<span class="sd">            Anndata object.</span>
+<span class="sd">        num_cells : int</span>
+<span class="sd">            Number of cells to synthesize.</span>
+<span class="sd">        num_lr_pairs : int</span>
+<span class="sd">            Number of ligand-receptor pairs to synthesize.</span>
+<span class="sd">        overexpression_scale : float</span>
+<span class="sd">            Scale factor for overexpressing ligand-receptor pairs.</span>
+<span class="sd">        output_path : str</span>
+<span class="sd">            Path to save the output file.</span>
+<span class="sd">        output_filename : str</span>
+<span class="sd">            Name of the output file.</span>
+<span class="sd">        scenario : str</span>
+<span class="sd">            Name of the scenario to synthesize the gene expression. </span>
+<span class="sd">            &quot;default&quot; will synthesize the gene expression based on the ligand-receptor pairs in the anndata object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="c1"># if scenario == &quot;remove_hvg&quot;:</span>
+        <span class="c1">#     sc.pp.highly_variable_genes(adata)</span>
+        <span class="c1">#     adata = adata[:, ~adata.var.highly_variable]</span>
+            
+        <span class="c1"># Find ligand and receptor genes in the anndata object</span>
+        <span class="n">lr_genes_in_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_lr_genes_intersection</span><span class="p">(</span><span class="n">adata</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lr_genes_in_matrix</span><span class="p">)</span><span class="si">}</span><span class="s2"> ligand-receptor pairs in anndata&quot;</span><span class="p">)</span>
+
+        <span class="n">gene_names</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">var_names</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        
+        <span class="c1"># Identify ligand and receptor gene indices</span>
+        <span class="n">lr_flag_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">gene</span> <span class="ow">in</span> <span class="n">lr_genes_in_matrix</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">gene_names</span><span class="p">])</span>
+        <span class="n">non_lr_gene_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">lr_flag_matrix</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">lr_gene_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">lr_flag_matrix</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">non_lr_gene_indices</span><span class="p">)</span>
+        <span class="n">new_lr_gene_indices</span> <span class="o">=</span> <span class="n">non_lr_gene_indices</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">lr_gene_indices</span><span class="p">)]</span>
+        <span class="n">index_mapping</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">lr_gene_indices</span><span class="p">,</span> <span class="n">new_lr_gene_indices</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">lr_idx</span><span class="p">,</span> <span class="n">new_idx</span> <span class="ow">in</span> <span class="n">index_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">gene_names</span><span class="p">[</span><span class="n">lr_idx</span><span class="p">],</span> <span class="n">gene_names</span><span class="p">[</span><span class="n">new_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">gene_names</span><span class="p">[</span><span class="n">new_idx</span><span class="p">],</span> <span class="n">gene_names</span><span class="p">[</span><span class="n">lr_idx</span><span class="p">]</span>
+            
+        <span class="n">adata</span><span class="o">.</span><span class="n">var_names</span> <span class="o">=</span> <span class="n">gene_names</span>
+
+        <span class="n">lr_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_lr_pairs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_pair_df</span><span class="p">,</span> <span class="n">num_lr_pairs</span><span class="p">,</span> <span class="n">gene_names</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">lr_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2"> eligible ligand-receptor out of </span><span class="si">{</span><span class="n">num_lr_pairs</span><span class="si">}</span><span class="s2"> pairs&quot;</span><span class="p">)</span>
+
+        <span class="n">num_cell_types</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+
+        <span class="n">cell_types</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="n">cell_type_labels</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">cell_type</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+        <span class="c1"># Generate source target pairs</span>
+        <span class="n">source_target_pairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_source_target_pairs</span><span class="p">(</span><span class="n">num_cell_types</span><span class="p">)</span>
+
+         <span class="c1"># Generte combination of cell types and ligand-receptor pairs</span>
+        <span class="n">cell_type_receptor_ligand_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_cell_type_receptor_ligand_dict</span><span class="p">(</span><span class="n">cell_types</span><span class="p">,</span> <span class="n">lr_pairs</span><span class="p">)</span>
+
+        <span class="c1"># Generate interaction maps</span>
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_interaction_maps</span><span class="p">(</span><span class="n">cell_type_receptor_ligand_dict</span><span class="p">,</span> <span class="n">lr_pairs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">)</span><span class="si">}</span><span class="s2"> interactions&quot;</span><span class="p">)</span>
+
+        <span class="n">synth_adata</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">unique_row_col_index_pairs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="n">synthetic_gene_indices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+        <span class="n">ineligible_ground_truth_genes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+
+        <span class="k">for</span> <span class="n">interaction_map</span> <span class="ow">in</span> <span class="n">interaction_maps</span><span class="p">:</span>
+            
+            <span class="n">source_cells</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;source&quot;</span><span class="p">]]</span>
+            <span class="n">target_cells</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;target&quot;</span><span class="p">]]</span>
+            <span class="n">ligand_genes</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">]]</span>
+            <span class="n">receptor_genes</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]]</span>
+
+            <span class="n">source_indices</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">source_cells</span><span class="p">)</span>
+            <span class="n">target_indices</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">target_cells</span><span class="p">)</span>
+            <span class="n">ligand_indices</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">ligand_genes</span><span class="p">)</span>
+            <span class="n">receptor_indices</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">receptor_genes</span><span class="p">)</span>
+
+            <span class="n">synthetic_gene_indices</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">ligand_genes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ligand_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">synthetic_gene_indices</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">receptor_genes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">receptor_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">source_indices</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">ligand_indices</span><span class="p">:</span>
+                    <span class="n">unique_row_col_index_pairs</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">target_indices</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">receptor_indices</span><span class="p">:</span>
+                    <span class="n">unique_row_col_index_pairs</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+
+        <span class="n">synth_adata_lil</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">tolil</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">unique_row_col_index_pairs</span><span class="p">:</span>
+            <span class="c1"># There are some values that are having 0 expression so overexpressing them will result in 0 expression</span>
+            <span class="n">synth_adata_lil</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">*=</span> <span class="n">overexpression_scale</span>
+
+        <span class="c1"># Find all the columns where column_name is in lr_genes_in_matrix</span>
+        <span class="n">lr_genes_in_matrix</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">lr_genes_in_matrix</span><span class="p">)))</span>
+        <span class="n">lr_gene_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span> <span class="k">for</span> <span class="n">gene</span> <span class="ow">in</span> <span class="n">lr_genes_in_matrix</span><span class="p">]</span>
+        
+        <span class="c1"># Zero out the expression values for the lr_gene_indices if the row and col index pair is not in unique_row_col_index_pairs</span>
+        <span class="n">not_in_col</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">lr_gene_indices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">unique_row_col_index_pairs</span><span class="p">]:</span>
+                <span class="n">synth_adata_lil</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">not_in_col</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+        <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">synth_adata_lil</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+
+        <span class="n">synthetic_gene_indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">synthetic_gene_indices</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">gene</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">synthetic_gene_indices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">synth_adata_lil</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ineligible_ground_truth_genes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">gene</span><span class="p">)</span>
+
+
+        <span class="c1"># Get all of the positions where the value is 0 in synth_adata.X</span>
+        <span class="n">zero_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zero_indices</span><span class="p">)</span><span class="si">}</span><span class="s2"> expression values with 0 expression out of </span><span class="si">{</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Add new columns to synth_adata called batch where it splits the data into num_batch batches based on the cell_type proportionally</span>
+        <span class="k">if</span> <span class="n">num_batch</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">cell_type_counts</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s1">&#39;cell_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+            <span class="n">batch_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">cell_type</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">cell_type_counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s1">&#39;cell_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cell_type</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="n">int_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+                <span class="n">batch_labels_for_cell_type</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_batch</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">count</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">batch_labels</span><span class="p">[</span><span class="n">int_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_labels_for_cell_type</span>
+
+            <span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_labels</span>
+
+            <span class="c1"># random_factors = np.random.uniform(0, 1, num_batch)</span>
+            <span class="n">random_factors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="n">num_batch</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batch</span><span class="p">):</span>
+                <span class="c1"># # Scaling</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;scale&quot;</span><span class="p">:</span>
+                    <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">*=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_factor</span>
+
+                <span class="c1"># # Shifting</span>
+                <span class="c1"># Changing sd</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_sd&quot;</span><span class="p">:</span>
+                    <span class="n">random_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">batch_mean</span> <span class="p">,</span> <span class="n">random_factors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+                    <span class="n">random_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">random_vector</span><span class="p">,</span> <span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+
+                    <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">random_matrix</span>
+
+
+                <span class="c1"># # Add a constant value (shifting non random)</span>
+                <span class="k">if</span> <span class="n">be_method</span> <span class="o">==</span> <span class="s2">&quot;shift_by_constant&quot;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">):</span>
+                        <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span> 
+                        <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_factor</span>
+                        <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+                <span class="c1"># synth_adata.X[synth_adata.obs[&quot;batch&quot;] == i] += (i + 1) * batch_factor</span>
+        
+        <span class="c1"># Update synth_adata.X to 0 using the zero_indices</span>
+        <span class="n">synth_adata</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">zero_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">zero_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># New ground truth</span>
+        <span class="n">interaction_maps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">interaction_map</span> <span class="k">for</span> <span class="n">interaction_map</span> <span class="ow">in</span> <span class="n">interaction_maps</span> <span class="k">if</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;ligand&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ineligible_ground_truth_genes</span> <span class="ow">and</span> <span class="n">interaction_map</span><span class="p">[</span><span class="s2">&quot;receptor&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ineligible_ground_truth_genes</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output_path</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+    
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/synthetic_ground_truth.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">interaction_maps</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">fp</span><span class="p">)</span>
+
+        <span class="n">synth_adata</span><span class="o">.</span><span class="n">write_h5ad</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s1">.h5ad&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">synthetic_data</span> <span class="o">=</span> <span class="n">synth_adata</span>
+
+        <span class="n">ground_truth_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_ground_truth</span><span class="p">(</span><span class="n">interaction_maps</span><span class="p">)</span>
+        <span class="n">ground_truth_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_ground_truth.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Converting AnnData object to Seurat object&quot;</span><span class="p">)</span>
+
+        <span class="n">convert_anndata_to_seurat</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">.h5ad&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_seurat.rds&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s1">_seurat.rds&#39;</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conversion complete. The Seurat object is saved as &#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_seurat.rds&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Conversion failed. Please check the output path.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Save the parameters to a new file called data_params.json</span>
+        <span class="n">data_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;reference_adata&quot;</span><span class="p">:</span> <span class="n">adata</span><span class="o">.</span><span class="n">obs</span><span class="p">[</span><span class="s2">&quot;cell_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">(),</span>
+            <span class="s2">&quot;num_cells&quot;</span><span class="p">:</span> <span class="n">num_cells</span><span class="p">,</span>
+            <span class="s2">&quot;num_lr_pairs&quot;</span><span class="p">:</span> <span class="n">num_lr_pairs</span><span class="p">,</span>
+            <span class="s2">&quot;overexpression_scale&quot;</span><span class="p">:</span> <span class="n">overexpression_scale</span><span class="p">,</span>
+            <span class="s2">&quot;output_path&quot;</span><span class="p">:</span> <span class="n">output_path</span><span class="p">,</span>
+            <span class="s2">&quot;output_filename&quot;</span><span class="p">:</span> <span class="n">output_filename</span><span class="p">,</span>
+            <span class="s2">&quot;num_batch&quot;</span><span class="p">:</span> <span class="n">num_batch</span><span class="p">,</span>
+            <span class="s2">&quot;batch_mean&quot;</span><span class="p">:</span> <span class="n">batch_mean</span><span class="p">,</span>
+            <span class="s2">&quot;batch_sd&quot;</span><span class="p">:</span> <span class="n">batch_sd</span><span class="p">,</span>
+            <span class="s2">&quot;batch_factor&quot;</span><span class="p">:</span> <span class="n">batch_factor</span><span class="p">,</span>
+            <span class="s2">&quot;be_method&quot;</span><span class="p">:</span> <span class="n">be_method</span><span class="p">,</span>
+            <span class="s2">&quot;scenario&quot;</span><span class="p">:</span> <span class="n">scenario</span>
+        <span class="p">}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s1">/data_params.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data_params</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Conversion complete. The Seurat object is saved as &#39;</span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">output_filename</span><span class="si">}</span><span class="s2">_seurat.rds&#39;.&quot;</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Haries Ramdhani.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

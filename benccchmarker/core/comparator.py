@@ -2,26 +2,13 @@ import importlib
 import subprocess
 import os
 from pathlib import Path
-import yaml
+import yamlxw
 
 import anndata
 import pandas as pd
 import rpy2.robjects.packages as rpackages
 
 class Comparator():
-    """
-    Comparator allows to run and compare the result of different algorithms on the 
-    user provided dataset.
-
-    Parameters
-    ----------
-    output_file_path : str
-        Path to the output file.
-    species : str
-        Species of the dataset.
-    file_paths : dict
-        A dictionary containing the paths to the files required for the comparison.
-    """
 
     FILE_KEYS = {
 
@@ -47,6 +34,19 @@ class Comparator():
         species="hsapiens",
         **file_paths
     ):
+        """
+        Comparator allows to run and compare the result of different algorithms on the 
+        user provided dataset.
+
+        Parameters
+        ----------
+        output_file_path : str
+            Path to the output file.
+        species : str
+            Species of the dataset.
+        file_paths : dict
+            A dictionary containing the paths to the files required for the comparison.
+        """
         self.current_file = Path(__file__)
 
         self.file_paths = file_paths
