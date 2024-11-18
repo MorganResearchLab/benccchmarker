@@ -1,0 +1,9 @@
+include benccchmarker/datasets/*.csv
+include benccchmarker/datasets/lrdb_key.parquet.gzip
+include benccchmarker/datasets/methods.txt
+include benccchmarker/test/data/*
+include benccchmarker/params/*
+include benccchmarker/methods/*
+include benccchmarker/misc/*
+include benccchmarker/template/*
+include benccchmarker/preprocess/*

@@ -1,0 +1,21 @@
+name: benccchmarker
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - r-base=4.3.1
+  - pytest
+  - ca-certificates
+  - openssl
+  - anndata
+  - r-seurat
+  - r-anndata
+  - scanpy
+  - certifi
+  - pyyaml
+  - yaml
+  - sphinx
+  - pyarrow
+  - fastparquet
+  - scikit-learn

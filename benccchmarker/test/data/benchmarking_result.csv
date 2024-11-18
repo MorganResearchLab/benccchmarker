@@ -1,0 +1,2 @@
+file_path,num_cells,num_lr_pairs,num_cell_types,overexpression_scale,mean_expression,dispersion,combination,tp,tn,fp,fn,fpr,tpr,auc,ji
+benccchmarker/test/data/benchmarker_simulated_data_prediction_half.csv,1000,10,5,1.5,100,20,250,64,121,0,65,0.0,0.49612403100775193,0.748062015503876,0.49612403100775193

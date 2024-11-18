@@ -1,0 +1,42 @@
+name: benccchmarker build and test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+          auto-update-conda: true
+          miniforge-variant: Mambaforge
+          activate-environment: benccchmarker-gh-action-test
+          environment-file: environment.yaml
+
+
+    - name: Debug Environment
+      run: |
+        python --version
+        conda list
+        Rscript -e 'sessionInfo()'
+
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+        pip install -e . 
+        pip install pytest pytest-cov
+        pytest --cov=benccchmarker --cov-report=xml
+
+    - name: Upload results to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

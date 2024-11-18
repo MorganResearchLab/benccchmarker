@@ -1,0 +1,6 @@
+methods:
+  - name: celltalker
+    version: 
+    environment: "/uoa/home/r04mr23/sharedscratch/.conda/envs/benccchmarker"
+    scoring_method:
+  

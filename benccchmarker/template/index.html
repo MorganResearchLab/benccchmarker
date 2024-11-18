@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        h1 {
+            font-size: 2em;
+            
+        }
+        h2 {
+            font-size: 1.5em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #171411;
+            border-radius: 2px; /* Add border radius to the table */
+            overflow: hidden; /* Ensure rounded corners are visible */
+        }
+        th, td {
+            border: 1px solid #171411;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .header-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-details p {
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="report" style="max-width: 1024px; margin: 0 auto;">
+        <div id="header" style="margin-bottom: 3em;">
+            <div>
+                <h1>benCCChmarker Comparator Results</h1>
+            </div>
+            <div class="header-details">
+                <p><b>Dataset:</b> synthetic_data_trial_20240815.h5ad</h2>
+                <p><b>Date:</b> 2024-08-16</p>
+                <p><b>Setup:</b> Default</p>
+                <p><b>Start Time:</b> 2024-08-16</p>
+                <p><b>End Time:</b> 2024-08-16</p>
+                <p><b>Total Memory Cosumed:</b> 147 MB</p>
+                <p><b>Raw Output Path:</b> /Users/r04mr23/Documents/phd/morgan_lab/benccchmarker/benccchmarker/notebook/out/synthetic_20240815</p>
+            </div>
+        </div>
+    
+        <!--Create table with 4 columns, methods, time, memory, predicted ccc count-->
+        <div id="runtime-summary">
+            <h2 id="runtime-summary-title">Runtime Summary</h2>
+            <table id="runtime-summary-table" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <th>Method</th>
+                    <th>Time</th>
+                    <th>Memory</th>
+                    <th>Predicted CCC Count</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>CellTalker</td>
+                    <td>25 s</td>
+                    <td>50MB</td>
+                    <td>76</td>
+                    <td>Success</td>
+                </tr>
+                <tr>
+                    <td>ScConnect</td>
+                    <td>36 s</td>
+                    <td>56 MB</td>
+                    <td>213</td>
+                    <td>Success</td>
+                </tr>
+                <tr>
+                    <td>CellChat</td>
+                    <td>1 m 53 s</td>
+                    <td>147 MB</td>
+                    <td>267</td>
+                    <td>Success</td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="inference-results">
+            <h2>Inference Results (Consensus)</h2>
+            <!--Create table with these columns ligand, receptor, predicted by n methods, confidence-->
+            <table id="inference-results-table" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <th>Source</th>
+                    <th>Target</th>
+                    <th>Ligand</th>
+                    <th>Receptor</th>
+                    <th>Predicted by N Methods</th>
+                    <th>Confidence</th>
+                </tr>
+                <tr>
+                    <td>epi_SOX9_LGR5</td>
+                    <td>Fibroblast eS</td>
+                    <td>GDF5</td>
+                    <td>BMPR1A_BMPR2</td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Myeloid</td>
+                    <td>epi_SOX9</td>
+                    <td>CCL22</td>
+                    <td>ACKR2</td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>epi_SOX9_LGR5</td>
+                    <td>Receptor 3</td>
+                    <td>3</td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+        <div>
+            <p>Circos Plot https://github.com/nicgirault/circosJS</p>
+        </div>
+        <div>
+            <h2>Prediction similarity</h2>
+        </div>
+    </div>
+</body>
+<script>
+</script>
+</html>
