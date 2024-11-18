@@ -1,6 +1,6 @@
 # benCCChmarker
 
-![Build](https://github.com/hariesramdhani/benccchmarker/actions/workflows/run_test.yaml/badge.svg)
+![Build](https://github.com/MorganResearchLab/benccchmarker/actions/workflows/run_test.yaml/badge.svg)
 [![codecov](https://codecov.io/gh/hariesramdhani/benccchmarker/graph/badge.svg?token=2N4HE6JILK)](https://codecov.io/gh/hariesramdhani/benccchmarker)
 
 ![benccchmarker logo](assets/img/benccchmarker_logo.png)
