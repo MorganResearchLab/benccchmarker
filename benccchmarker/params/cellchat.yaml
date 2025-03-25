@@ -1,0 +1,46 @@
+version: 2.1.2
+
+general:
+  workers: 4
+
+params:
+  identifyOverExpressedGenes:
+    data.use: NULL
+    group.by: NULL
+    idents.use: NULL
+    invert: FALSE
+    group.dataset: NULL
+    pos.dataset: NULL
+    features.name: "features"
+    only.pos: TRUE
+    features: NULL
+    return.object: TRUE
+    thresh.pc: 0
+    thresh.fc: 0
+    thresh.p: 0.05
+
+  computeCommunProb:
+    type: "triMean"
+    trim: 0.1
+    LR.use: NULL
+    raw.use: TRUE
+    population.size: FALSE
+    distance.use: TRUE
+    interaction.range: 250
+    scale.distance: 0.01
+    k.min: 10
+    contact.dependent: TRUE
+    contact.range: NULL
+    contact.knn.k: NULL
+    contact.dependent.forced: FALSE
+    do.symmetric: TRUE
+    nboot: 100
+    seed.use: 1
+    Kh: 0.5
+    n: 1
+
+  filterCommunication:
+    min.cells: 10
+    min.samples: NULL
+    rare.keep: FALSE
+    nonFilter.keep: FALSE

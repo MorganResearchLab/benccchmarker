@@ -1,4 +1,5 @@
 import json
+import os
 
 import pandas as pd
 import numpy as np
@@ -28,7 +29,7 @@ class Benchmarker():
     output_dir : str
         Path to the output directory where the results will be saved.
     """
-    def __init__(self, prediction_file_path, ground_truth_file_path, ground_truth_data_params_path, output_dir):
+    def __init__(self, prediction_file_path, ground_truth_file_path, ground_truth_data_params_path, ground_truth_lr_pairs_path, filename, output_dir):
         
         self.prediction_file_path = prediction_file_path
         self.prediction = pd.read_csv(prediction_file_path)
@@ -41,7 +42,10 @@ class Benchmarker():
             ground_truth_data_params = json.load(f)
         self.ground_truth_data_params = ground_truth_data_params
 
+        self.ground_truth_lr_pairs = pd.read_csv(ground_truth_lr_pairs_path)
+
         self.output_dir = output_dir
+        self.filename = filename
 
         self.result = None
 
@@ -65,31 +69,37 @@ class Benchmarker():
 
         ground_truth_df = self.ground_truth
         prediction_df = self.prediction
-        ground_truth_data_params = self.ground_truth_data_params
 
         required_columns = [
             "source",
-            "target",
             "ligand",
+            "target",
             "receptor",
         ]
         input_columns = prediction_df.columns.str.lower()
 
         missing_columns = set(required_columns) - set(input_columns)
-        print(missing_columns)
 
         if missing_columns:
             raise ValueError(f"Missing the following columns: {' '.join(missing_columns)}. Cannot proceed with the benchmarking, please make sure you have the required columns {required_columns}")
         else:
 
+            prediction_df = prediction_df[required_columns]
+
+            initial_row_count = len(prediction_df)
+
+            prediction_df = prediction_df[prediction_df.apply(lambda row: (row["ligand"], row["receptor"]) in set(zip(self.ground_truth_lr_pairs["ligand"], self.ground_truth_lr_pairs["receptor"])), axis=1)]
+
+            print(f"Dropped {initial_row_count - len(prediction_df)} rows from the prediction file as the ligand and receptor pairs are not in the ground truth data")
+
             predicted_labels = set(prediction_df[required_columns].apply(lambda row: '---'.join(row.values.astype(str)), axis=1))
-            ground_truth_labels = ground_truth_df["label"].to_list()
+            ground_truth_labels = set(ground_truth_df[required_columns].apply(lambda row: '---'.join(row.values.astype(str)), axis=1))
 
-            true_labels_count = ground_truth_data_params["num_cell_types"] ** 2 * ground_truth_data_params["num_lr_pairs"]
+            true_labels_count = self.ground_truth_data_params["num_cell_types"] ** 2 * self.ground_truth_data_params["num_lr_pairs"]
 
-            true_positives = len(set(ground_truth_labels).intersection(set(predicted_labels)))
-            false_positives = len(set(predicted_labels) - set(ground_truth_labels))
-            false_negatives = len(set(ground_truth_labels) - set(predicted_labels))
+            true_positives = len(ground_truth_labels.intersection(predicted_labels))
+            false_positives = len(predicted_labels - ground_truth_labels)
+            false_negatives = len(ground_truth_labels - predicted_labels)
             true_negatives = true_labels_count - true_positives - false_positives - false_negatives
 
             if true_negatives < 0:
@@ -108,14 +118,15 @@ class Benchmarker():
             jaccard_index = true_positives / (true_positives + false_positives + false_negatives)
 
             result = {
-                "file_path": self.prediction_file_path,
-                "num_cells": ground_truth_data_params["num_cells"],
-                "num_lr_pairs": ground_truth_data_params["num_lr_pairs"],
-                "num_cell_types": ground_truth_data_params["num_cell_types"],
-                "overexpression_scale": ground_truth_data_params["overexpression_scale"] if "overexpression_scale" in ground_truth_data_params else None,
+                "prediction_file_path": self.prediction_file_path,
+                "ground_truth_file_path": self.ground_truth_file_path,
+                "num_cells": self.ground_truth_data_params["num_cells"],
+                "num_lr_pairs": self.ground_truth_data_params["num_lr_pairs"],
+                "num_cell_types": self.ground_truth_data_params["num_cell_types"],
+                "overexpression_scale": self.ground_truth_data_params["overexpression_scale"] if "overexpression_scale" in self.ground_truth_data_params else None,
                 # Mean expression if exists otherwise None
-                "mean_expression": ground_truth_data_params["mean_expression"] if "mean_expression" in ground_truth_data_params else None,
-                "dispersion": ground_truth_data_params["dispersion"] if "dispersion" in ground_truth_data_params else None,
+                "mean_expression": self.ground_truth_data_params["mean_expression"] if "mean_expression" in self.ground_truth_data_params else None,
+                "dispersion": self.ground_truth_data_params["dispersion"] if "dispersion" in self.ground_truth_data_params else None,
                 "combination": true_labels_count, 
                 "tp": true_positives,
                 "tn": true_negatives,
@@ -129,7 +140,10 @@ class Benchmarker():
 
             # Save result to a csv file
             result_df = pd.DataFrame([result])
-            result_df.to_csv(f"{self.output_dir}/benchmarking_result.csv", index=False)
+
+            os.makedirs(self.output_dir, exist_ok=True)
+
+            result_df.to_csv(f"{self.output_dir}/{self.filename}.csv", index=False)
 
             self.set_results(result)
             print("Saved the benchmarking results to the output directory")

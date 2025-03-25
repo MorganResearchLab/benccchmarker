@@ -1,0 +1,14 @@
+methods_to_run:
+  - name: cellcall
+    env:
+  - name: cellchat_v1
+    env: /opt/homebrew/Caskroom/miniforge/base/envs/cellchat_v1/bin/RScript
+  - name: cellchat_v2
+    env:
+  - name: cell2cell
+    env:
+  - name: celltalker
+    env: 
+
+
+

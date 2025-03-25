@@ -1,0 +1,8 @@
+params:
+  scTenifoldXct:
+    rebuild_GRN: TRUE
+    alpha: 0.5
+    mu: 1.0
+    scale_w: TRUE
+    n_dim: 3
+    verbose: TRUE

@@ -1,0 +1,21 @@
+ligand_receptor_pair_db: 'https://raw.githubusercontent.com/LewisLabUCSD/Ligand-Receptor-Pairs/master/Human/Human-2020-Jin-LR-pairs.csv'
+
+params:
+  SingleCellInteractions:
+    communication_score: 'expression_thresholding'
+    cci_score: 'bray_curtis'
+    cci_type: 'undirected'
+    expression_threshold: 0.1
+    aggregation_method: 'nn_cell_fraction'
+    barcode_col: 'index'
+    celltype_col: 'cell_type'
+    complex_sep: '&'
+    verbose: False
+  permute_cell_labels:
+    permutations: 1000
+    evaluation: "communication"
+    fdr_correction: True
+    verbose: False
+    random_state: 42
+
+

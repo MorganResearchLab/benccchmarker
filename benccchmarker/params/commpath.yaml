@@ -1,0 +1,6 @@
+params:
+  findLRmarker:
+    method: "wilcox.test"
+  findLRpairs:
+    logFC.thre: 0
+    p.thre: 0.01

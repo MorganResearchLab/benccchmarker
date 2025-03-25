@@ -1,0 +1,8 @@
+params:
+  BuildGeneStatList:
+    assayType: "logcounts"
+    assaySlot: ""
+    exponent: 2
+    pseudocount: 1
+  BuildCCInx:
+    GeneMagnitude: "MeanNormGeneExpr"

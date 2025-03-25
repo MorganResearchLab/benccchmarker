@@ -1,0 +1,14 @@
+params:
+  cell_signaling:
+    int.type: "autocrine"
+    c.names: NULL
+    s.score: 0.5
+    logFC: 1.5
+    tol: 0
+    write: FALSE
+    verbose: FALSE
+  inter_network:
+    c.names: NULL
+    write: TRUE
+    plot: FALSE
+    verbose: TRUE

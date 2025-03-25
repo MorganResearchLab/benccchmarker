@@ -1,0 +1,7 @@
+version: 2.2.1
+
+params:
+  sc.data.cleaning:
+    filter.perc: 5
+  gene.scaling:
+    n_var: 1

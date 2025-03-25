@@ -1,0 +1,9 @@
+version: 1.0.0
+
+params:
+  disir_package:
+    tf: 0.1
+    te: 0.1
+    tp: 0.01
+    iv: 500
+    subunit_interactions_path: "/uoa/home/r04mr23/sharedscratch/trial/benCCChmarker/ligand_receptor_list.csv"

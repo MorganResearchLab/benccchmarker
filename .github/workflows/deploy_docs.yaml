@@ -1,0 +1,61 @@
+name: DOCS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+          auto-update-conda: true
+          miniforge-variant: Mambaforge
+          activate-environment: benccchmarker
+          environment-file: environment.yaml
+
+    - name: Install benccchmarker
+      shell: bash -l {0}
+      run: |
+        pip install -e .
+
+    - name: Generate HTML documentation
+      run: |
+        pip install sphinx sphinx_rtd_theme
+        sphinx-apidoc -o docs benccchmarker/
+        cd docs
+        make html
+
+    - name: Verify HTML output
+      run: |
+        if [ ! -d "docs/_build/html" ]; then
+          echo "HTML documentation not generated!"
+          exit 1
+        fi
+        echo "HTML documentation generated successfully."
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Git
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+
+    - name: Create and push to docs branch
+      run: |
+        pwd
+        git checkout -b docs || git checkout docs
+        # Copy the HTML files from _build/html to the root of the docs branch
+        cp -r docs/_build/html/* ./
+        git add .
+        git commit -m "Deploy documentation"
+        git push --force origin docs

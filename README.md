@@ -5,15 +5,11 @@
 
 ![benccchmarker logo](assets/img/benccchmarker_logo.png)
 
+```diff
+- DISCLAIMER: Please be aware that because of the latest update and restructure most of the codes remain untested, will try to finish the testing asap so everything can run smoothly, right now please just use this repo, to have a quick glance of how benCCChmarker is structured, (the older version works well but the simulation isn't very biologically realistic)
+```
+
 **benCCChmarker** is a Python framework to benchmark multiple single-cell RNA-seq cell-to-cell communication algorithms. **benCCChmarker** provides an easy to use framework to compare different algorithms using simulated cell-to-cell communcation single-cell RNA-sequencing data and curated data.
-
-## Features (v 0.0.1)
-
-- **Run Multiple Methods**: Run multiple CCC algorithms at once on a user specified input.
-- **Benchmarking**: Compare the performance of various cell-to-cell communication algorithms on metrics such as accuracy, scalability and robustness.
-- **Extensibility**: Easily add new algorithms to the benchmarking suite.
-- **Visualisation**: Generate comprehensive visual reports of the benchmarking results.
-- **Reproducibility**: Ensure reproducible results with detailed logging and configuration management.
 
 ## Installation
 
@@ -34,8 +30,15 @@ conda activate benccchmarker
 pip install .
 ```
 
-### Installing from conda
-(in progress)
+## Tutorial
+Tutorial on how to perform some of the benCCChmarker functionalities on Google Colab
+
+1. [Generating ground truth data (de novo/from reference)](#)
+2. [Using benCCChmarker datasets](#)
+3. [Running multiple methods and method parameter setup](#)
+4. [Adding new CCC methods to benCCChmarker](#)
+5. [benCCChmarker end-to-end pipeline (for method user)](#)
+6. [benCCChmarker end-to-end pipeline (for method developer)](#)
 
 ## Basic Usage
 ![Basic Usage](assets/img/basic_usage.png)

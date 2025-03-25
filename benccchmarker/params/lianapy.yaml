@@ -1,0 +1,13 @@
+version: 2.1.0
+
+params:
+  rank_aggregate:
+    resource_name: "consensus"
+    expr_prop: 0.1
+    min_cells: 5
+    aggregate_method: 'rra'
+    key_added: 'liana_res'
+    de_method: 't-test'
+    n_perms: 1000
+    seed: 1337
+    n_jobs: 1

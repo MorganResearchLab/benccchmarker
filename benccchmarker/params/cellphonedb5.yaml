@@ -1,0 +1,10 @@
+cpdb_version: 'v5.0.0'
+
+params:
+  cpdb_analysis_method.call:
+    threads: 5
+    threshold: 0.1
+    result_precision: 3
+    pvalue: 0.05
+    subsampling: False
+    subsampling_num_pc: 100

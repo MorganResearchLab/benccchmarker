@@ -1,0 +1,10 @@
+version: 0.99.10
+
+params:
+  ligandReceptorTest:
+    ligandReceptor_list: "/uoa/home/r04mr23/sharedscratch/trial/benCCChmarker/ligand_receptor_list.csv"
+    RNA_exprs_value: "minMax"
+    use_alt_exp: FALSE
+    num_permute: 1000
+
+p_value: 0.05

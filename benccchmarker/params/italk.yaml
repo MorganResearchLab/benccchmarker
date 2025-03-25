@@ -1,0 +1,15 @@
+version: 0.1.0
+
+communication_categories:
+  - growth factor
+  - other
+  - cytokine
+  - checkpoint
+
+params:
+  rawParse:
+    top_genes: 50
+    stats: "mean"
+  FindLR:
+    datatype: "mean count"
+  

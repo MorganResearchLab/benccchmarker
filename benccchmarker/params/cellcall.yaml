@@ -1,0 +1,19 @@
+params:
+  CreateNichConObject:
+    min.feature: 3
+    names.field: 2
+    names.delim: "_"
+    project: "Microenvironment"
+    source: "UMI"
+    scale.factor: 1000000
+    Org: "Homo sapiens"
+  TransCommuProfile:
+    pValueCor: 0.05
+    CorValue: 0.1
+    topTargetCor: 1
+    p.adjust: 0.05
+    use.type: "median"
+    probs: 0.9
+    method: "weighted"
+    Org: "Homo sapiens"
+    IS_core: TRUE

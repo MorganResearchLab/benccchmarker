@@ -1,0 +1,20 @@
+version: 2.1.2
+
+params:
+  scSeqComm_analyze:
+    inter_signaling: TRUE
+    intra_signaling: TRUE
+    DEmethod: "wilcoxon"
+    only.pos: FALSE
+    aggregation_method: "mean"
+    N_cores: 1
+    inter_scores: "scSeqComm"
+    bigmatrix: FALSE
+    bigmatrix_type: "double"
+    sampling: NULL
+    Nrep: NULL
+    min_cells: 30
+    count_thr: 1
+  result_filter:
+    S_inter: 0.8
+    S_intra: 0.8

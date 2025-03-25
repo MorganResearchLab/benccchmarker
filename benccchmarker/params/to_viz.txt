@@ -1,0 +1,3 @@
+- Jaccard index
+- Show the consensus of the results
+- Allow user to preview prediction by different methods

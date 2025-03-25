@@ -4,14 +4,14 @@ import os
 from pathlib import Path
 import warnings
 
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 
 import anndata
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import scipy
-from scipy.stats import nbinom
+from scipy.stats import nbinom, lognorm, bernoulli
 
 from benccchmarker.utils import convert_anndata_to_seurat, get_n_p_from_mean_dispersion
 
@@ -55,14 +55,14 @@ class DataGenerator():
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
-    def _check_distribution_parameters(self, mean_expression, dispersion):
+    def _check_distribution_parameters(self, baseline_mean, dispersion):
         """
         Check if the mean expression and dispersion parameters are valid.
-        Raise exception if mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) < 0
+        Raise exception if baseline_mean / (dispersion ** 2) and (baseline_mean ** 2) / ((dispersion ** 2) - baseline_mean) < 0
 
         Parameters
         ----------
-        mean_expression : float
+        baseline_mean : float
             Mean expression level.
         dispersion : float
             Dispersion parameter.
@@ -72,12 +72,12 @@ class DataGenerator():
         bool
             True if the mean expression and dispersion parameters are valid.
         """
-        if mean_expression / (dispersion ** 2) < 0 or (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) < 0:
-            logging.error("Invalid mean expression and dispersion parameters, mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) has to be greater than 0.")
-            raise ValueError("Invalid mean expression and dispersion parameters, mean_expression / (dispersion ** 2) and (mean_expression ** 2) / ((dispersion ** 2) - mean_expression) has to be greater than 0.")
+        if baseline_mean / (dispersion ** 2) < 0 or (baseline_mean ** 2) / ((dispersion ** 2) - baseline_mean) < 0:
+            logging.error("Invalid mean expression and dispersion parameters, baseline_mean / (dispersion ** 2) and (baseline_mean ** 2) / ((dispersion ** 2) - baseline_mean) has to be greater than 0.")
+            raise ValueError("Invalid mean expression and dispersion parameters, baseline_mean / (dispersion ** 2) and (baseline_mean ** 2) / ((dispersion ** 2) - baseline_mean) has to be greater than 0.")
         return True
 
-    def _generate_lr_pairs(self, lr_pair_df, num_lr_pairs, gene_names=None):
+    def _generate_lr_pairs(self, lr_pair_df, num_lr_pairs, output_path, gene_names=None):
         """
         Generate ligand-receptor pairs.
 
@@ -102,6 +102,8 @@ class DataGenerator():
             random_state=self.seed
         ).copy()
 
+        lr_pair_sample_df.to_csv(f"{output_path}/ground_truth_lr_pairs.csv", index=False)
+
         # Generate ligand-receptor pair dictionary
         lr_pairs = {}
 
@@ -117,6 +119,7 @@ class DataGenerator():
         self,
         num_cells,
         num_cell_types,
+        cell_type_proportions=[]
     ):
         """
         Generate cell type labels.
@@ -133,13 +136,17 @@ class DataGenerator():
         list
             List of cell type labels.
         """
-        
-        cell_type_weights = np.random.randint(1, 10, num_cell_types)
-        cell_type_probas = [cell_type_weight/sum(cell_type_weights) for cell_type_weight in cell_type_weights]
-        cell_type_labels = np.random.choice(range(num_cell_types), size=num_cells, p=cell_type_probas)
-        cell_type_labels = [f"CellType{i}" for i in cell_type_labels]
 
-        return cell_type_labels
+        if cell_type_proportions != []:
+            cell_type_labels = np.random.choice(range(num_cell_types), num_cells, p=cell_type_proportions)
+            cell_type_labels = [f"CellType{i}" for i in cell_type_labels]
+
+            return cell_type_labels
+        else:
+            cell_type_labels = np.random.choice(range(num_cell_types), num_cells)
+            cell_type_labels = [f"CellType{i}" for i in cell_type_labels]
+
+            return np.array(cell_type_labels)
 
     def _generate_source_target_pairs(
         self,
@@ -231,7 +238,7 @@ class DataGenerator():
         interaction_maps = np.array(interaction_maps)
 
         interaction_map_probas = np.random.uniform(0, 1, len(interaction_maps))
-        interaction_maps = interaction_maps[np.argwhere(interaction_map_probas > 0.5).T[0]]
+        interaction_maps = interaction_maps[np.argwhere(interaction_map_probas > 0.9).T[0]]
 
         return interaction_maps
 
@@ -284,22 +291,95 @@ class DataGenerator():
 
         return ground_truth_df
 
+    def _validate_inputs(self, num_lr_pairs, num_genes, num_cell_types, marker_genes_per_cell_type, output_path):
+        """
+        Validate the inputs.
+
+        Parameters
+        ----------
+        num_lr_pairs : int
+            Number of ligand-receptor pairs.
+        num_genes : int
+            Number of genes.
+        output_path : str
+            Path to save the output file.
+        """
+        if num_lr_pairs > num_genes:
+            logging.error("num_lr_pairs has to be lower than num_genes.")
+            raise ValueError("num_lr_pairs has to be lower than num_genes.")
+
+        if (num_genes - num_lr_pairs) < marker_genes_per_cell_type:
+            logging.error("You don't have enough genes to assign marker genes for each cell type.")
+            raise ValueError("You don't have enough genes to assign marker genes for each cell type.")
+        
+        if (num_genes - num_lr_pairs) < num_cell_types * marker_genes_per_cell_type:
+            logging.warning("There might be multiple overlap between marker genes for each cell type.")
+            warnings.warn("There might be multiple overlap between marker genes for each cell type. It is recommended to increase the number of genes.")
+
+
+        if not os.path.exists(output_path):
+            os.makedirs(output_path, exist_ok=True)
+
+    def _update_interactions(self, simulated_df, interaction_maps, scenario):
+        if scenario == "lherhe":
+            for interaction in interaction_maps:
+                simulated_df.loc[simulated_df.index == interaction["source"], interaction["ligand"]] = -999
+                simulated_df.loc[simulated_df.index == interaction["target"], interaction["receptor"]] = -999
+
+        elif scenario == "lherme":
+            for interaction in interaction_maps:
+                simulated_df.loc[simulated_df.index == interaction["source"], interaction["ligand"]] = -999
+        else:
+            for interaction in interaction_maps:
+                simulated_df.loc[simulated_df.index == interaction["target"], interaction["receptor"]] = -999
+        return simulated_df
+
+     # Simulate dropout on simulated_df
+    def _simulate_dropout(self, df, dropout_rate):
+        mask = np.random.rand(*df.shape) < dropout_rate
+        df_dropout = df.mask(mask, 0)
+        return df_dropout
+
+    def _validate_cell_type_input(self, num_cell_types, cell_type_proportions):
+        if cell_type_proportions == []:
+            return True
+
+        if num_cell_types != len(cell_type_proportions):
+            logging.error("Number of cell types and cell type proportions do not match.")
+            raise ValueError("Number of cell types and cell type proportions do not match.")
+
+        if sum(cell_type_proportions) != 1:
+            logging.error("Cell type proportions do not sum to 1.")
+            raise ValueError("Cell type proportions do not sum to 1.")
+
+        return True
+
     def simulate_denovo(
         self,
         num_cells=5000,
-        num_genes=500,
+        num_genes=2500,
         num_lr_pairs=10,
         num_cell_types=5,
+        cell_type_proportions=[],
+        marker_genes_per_cell_type=10,
         method="overexpression",
-        overexpression_scale=2,
-        mean_expression=100,
-        dispersion=30,
+        communication_strength=2,
+        baseline_mean=10,
+        marker_mean=25,
+        dispersion=5,
+        dropout_a=1.5,
+        dropout_b=2,
+        lib_size_mean=1,
+        lib_size_sigma=0.5,
         num_batch=1,
         batch_factor=0.5,
+        batch_genes_per_batch = 30,
         batch_mean=0,
         batch_sd=0.1,
         be_method="shift_by_mean",
         differential_interaction=False,
+        de_genes_per_condition = 50,
+        condition_fold_change = 2,
         output_path="out",
         output_filename="simulated_data",
         scenario="lherhe",
@@ -323,9 +403,9 @@ class DataGenerator():
             Method to simulate data. "overexpression" will simulate the overexpression of
             ligand-receptor genes. "zero" will zero out the expression values
             of the non ligand-receptor genes.
-        overexpression_scale : float
+        communication_strength : float
             Scale factor for overexpressing ligand-receptor pairs. Required if method is "overexpression".
-        mean_expression : float
+        baseline_mean : float
             Mean expression level.
         dispersion : float
             Dispersion parameter.
@@ -353,25 +433,19 @@ class DataGenerator():
         """
 
         # Make sure num_lr_pairs is always greater than num_genes, otherwise raise an exception
-        if num_lr_pairs > num_genes:
-            logging.error("num_lr_pairs has to be lower than num_genes.")
-            raise ValueError("num_lr_pairs has to be lower than num_genes.")
-
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
+        self._validate_inputs(num_lr_pairs, num_genes, num_cell_types, marker_genes_per_cell_type, output_path)
+        self._validate_cell_type_input(num_cell_types, cell_type_proportions)
 
         # Check if the mean expression and dispersion parameters are valid
-        self._check_distribution_parameters(mean_expression, dispersion)
+        # self._check_distribution_parameters(baseline_mean, dispersion)
 
         # Sample ligand-receptor pairs based on the number of ligand-receptor pairs input
-        lr_pairs = self._generate_lr_pairs(self.lr_pair_df, num_lr_pairs)
-
+        lr_pairs = self._generate_lr_pairs(self.lr_pair_df, num_lr_pairs, output_path)
         lr_genes = np.concatenate([list(lr_pairs.keys()), list(lr_pairs.values())])
         num_lr_genes = len(np.unique(lr_genes))
 
         cell_types = [f"CellType{i}" for i in range(num_cell_types)]
-        cell_labels = [f"cell_{i}" for i in range(num_cells)]
-        
+        cell_barcodes = [f"cell_{i}" for i in range(num_cells)]
         cell_type_labels = self._generate_cell_type_labels(num_cells, num_cell_types)
 
         # Generate source target pairs
@@ -385,192 +459,136 @@ class DataGenerator():
         print(f"Generated {len(interaction_maps)} interactions")
         
         # Generate anndata
-        expression_levels = np.zeros((num_cells, num_lr_genes))
+        baseline_expressions = np.full((num_cells, num_genes), baseline_mean)
 
-        gene_labels = np.unique(np.concatenate([list(lr_pairs.keys()), list(lr_pairs.values())]))
-        
-        simulated_df = pd.DataFrame(expression_levels, columns=gene_labels, index=cell_type_labels)
+        non_lr_gene_path = self.current_file.parent.parent / "datasets" / "non_lr_genes_sample.csv"
+        non_lr_gene_names_df = pd.read_csv(non_lr_gene_path)
+
+        non_lr_genes = np.array(non_lr_gene_names_df.sample(num_genes - num_lr_genes, random_state=self.seed)["gene"].tolist())
+
+        all_genes = np.unique(np.concatenate([lr_genes, non_lr_genes]))
+
+        gene_is_overexpressed = np.zeros(num_genes, dtype=int) - 1
+
+        overexpressed_mean = baseline_mean * communication_strength
+
+        if differential_interaction:
+            condition_labels = np.zeros(num_cells, dtype=int)
+            for cell_type in np.unique(cell_type_labels):
+                cell_type_idx = np.where(cell_type_labels == cell_type)[0]
+                np.random.shuffle(cell_type_idx)
+                split = len(cell_type_idx) // 2
+                condition_labels[cell_type_idx[:split]] = 0
+                condition_labels[cell_type_idx[split:]] = 1
+
+            de_genes_control = np.random.choice(all_genes, de_genes_per_condition, replace=False)
+            de_genes_treated = np.random.choice(all_genes, de_genes_per_condition, replace=False)
+
+            de_genes_control_indices = [np.where(all_genes == gene)[0][0] for gene in de_genes_control]
+            de_genes_treated_indices = [np.where(all_genes == gene)[0][0] for gene in de_genes_treated]
+
+            treated_cells = np.where(condition_labels == 1)[0]
+            baseline_expressions = baseline_expressions.astype(float)
+            baseline_expressions[treated_cells[:, np.newaxis], de_genes_treated_indices] *= condition_fold_change
+
+            control_cells = np.where(condition_labels == 0)[0]
+            baseline_expressions[control_cells[:, np.newaxis], de_genes_control_indices] /= condition_fold_change
+
+
+        marker_genes = {}
+        marker_indices = np.zeros(num_genes)
+        for cell_type in cell_types:
+            markers = np.random.choice(non_lr_genes, marker_genes_per_cell_type, replace=False)
+            for marker in markers:
+                marker_index = np.where(all_genes == marker)[0][0]
+                cell_type_index = np.where(cell_type_labels == cell_type)[0]
+                baseline_expressions[cell_type_index, marker_index] = marker_mean * np.random.uniform(0.9, 1.5)
+                gene_is_overexpressed[marker_index] = 1
+            marker_genes[cell_type] = markers
 
         if scenario == "lherhe":
             for interaction_map in interaction_maps:
-                simulated_df.loc[interaction_map["source"], interaction_map["ligand"]] = -999
-                simulated_df.loc[interaction_map["target"], interaction_map["receptor"]] = -999
-        elif scenario == "lhemhe":
+                ligand_index = np.where(all_genes == interaction_map["ligand"])[0][0]
+                receptor_index = np.where(all_genes == interaction_map["receptor"])[0][0]
+
+                source_index = np.where(cell_type_labels == interaction_map["source"])[0]
+                target_index = np.where(cell_type_labels == interaction_map["target"])[0]
+
+                gene_is_overexpressed[ligand_index] = 1
+                gene_is_overexpressed[receptor_index] = 1
+
+                baseline_expressions[source_index, ligand_index] = overexpressed_mean
+                baseline_expressions[target_index, receptor_index] = overexpressed_mean
+        elif scenario == "lmerhe":
             for interaction_map in interaction_maps:
-                simulated_df.loc[interaction_map["source"], interaction_map["ligand"]] = -999
+                receptor_index = np.where(all_genes == interaction_map["receptor"])[0][0]
+
+                target_index = np.where(cell_type_labels == interaction_map["target"])[0]
+
+                gene_is_overexpressed[ligand_index] = 1
+
+                baseline_expressions[target_index, receptor_index] = overexpressed_mean
+        elif scenario == "lherme":
+            for interaction_map in interaction_maps:
+                ligand_index = np.where(all_genes == interaction_map["ligand"])[0][0]
+
+                source_index = np.where(cell_type_labels == interaction_map["source"])[0]
+
+                gene_is_overexpressed[ligand_index] = 1
+
+                baseline_expressions[source_index, ligand_index] = overexpressed_mean
         else:
-            for interaction_map in interaction_maps:
-                simulated_df.loc[interaction_map["target"], interaction_map["receptor"]] = -999
+            raise ValueError("Invalid scenario. Please choose from 'lherhe', 'lmerhe', 'lherme'.")
 
-        # IGNORE THIS PART OF THE CODE FOR NOW WILL HAVE IT IN THE NEARBY FUTURE RELEASES
-        modified_simulated_df = simulated_df.copy()
-        condition_labels = np.random.choice(range(1), len(cell_labels))
+        log_lib_size = np.random.normal(loc=0, scale=lib_size_sigma, size=num_cells)
+        lib_size_factors = np.exp(log_lib_size)
+        lib_size_factors /= np.mean(lib_size_factors)
 
-        # if differential_interaction:
-
-        #     condition_labels = np.random.choice(range(2), len(cell_labels))
-        #     simulated_df["condition"] = condition_labels
-
-        #     non_differential_interaction_map_probas = np.random.uniform(0, 1, len(interaction_maps))
-        #     non_differential_interaction_maps = interaction_maps[np.argwhere(non_differential_interaction_map_probas > 0.5).T[0]]
-
-        #     differential_interaction_maps = interaction_maps[np.argwhere(non_differential_interaction_map_probas <= 0.5).T[0]]
-
-        #     # Remove element from non_differential_interaction_maps if both the source and ligand are in the differential_interaction_maps or if both the target and receptor are in the differential_interaction_maps
-
-        #     print(f"{len(non_differential_interaction_maps)} which are differential interactions")
-
-        #     print(non_differential_interaction_maps)
-
-        #     non_differential_interaction_maps = [interaction_map for interaction_map in non_differential_interaction_maps if (interaction_map["source"] not in [interaction["source"] for interaction in differential_interaction_maps] and interaction_map["ligand"] not in [interaction["ligand"] for interaction in differential_interaction_maps]) or (interaction_map["target"] not in [interaction["target"] for interaction in differential_interaction_maps] and interaction_map["receptor"] not in [interaction["receptor"] for interaction in differential_interaction_maps])]
-
-        #     print(f"{len(non_differential_interaction_maps)} which are non differential interactions")
-
-        #     # Save differential_interaction_maps into a .json file
-        #     with open(f"{output_path}/{output_filename}_differential_interaction_maps.json", "w") as f:
-        #         json.dump(differential_interaction_maps.tolist(), f)
-
-        #     with open(f"{output_path}/{output_filename}_non_differential_interaction_maps.json", "w") as f:
-        #         json.dump(non_differential_interaction_maps.tolist(), f)
-
-        #     if scenario == "lherhe":
-        #         for interaction_map in differential_interaction_maps:
-        #             modified_simulated_df.loc[(simulated_df.index == interaction_map["source"]) & ( simulated_df["condition"] == 0), interaction_map["ligand"]] = 0
-        #             modified_simulated_df.loc[(simulated_df.index == interaction_map["target"]) & ( simulated_df["condition"] == 1), interaction_map["receptor"]] = 0
-        #     elif scenario == "lhemhe":
-        #         for interaction_map in differential_interaction_maps:
-        #             modified_simulated_df.loc[(simulated_df.index == interaction_map["source"]) & ( simulated_df["condition"] == 0), interaction_map["ligand"]] = 0
-        #     else:
-        #         for interaction_map in differential_interaction_maps:
-        #             modified_simulated_df.loc[(simulated_df.index == interaction_map["target"]) & ( simulated_df["condition"] == 1), interaction_map["receptor"]] = 0
-        
-        n, p = get_n_p_from_mean_dispersion(mean_expression, dispersion)
-        modified_simulated_df = modified_simulated_df.map(lambda x: nbinom.rvs(n, p) if x == 0 else x)
-
-        mean_altered_expression = mean_expression * overexpression_scale
-        n, p = get_n_p_from_mean_dispersion(mean_altered_expression, dispersion)
-
-        modified_simulated_df = modified_simulated_df.map(lambda x: nbinom.rvs(n, p) if x == -999 else x)
-
-        modified_simulated_df["condition"] = condition_labels
-        simulated_df = modified_simulated_df.copy()        
-        simulated_df.drop(columns=["condition"], inplace=True)
-
-        if add_control:
-            non_lr_gene_path = self.current_file.parent.parent / "datasets" / "non_lr_genes_sample.csv"
-            non_lr_gene_names_df = pd.read_csv(non_lr_gene_path)
-
-            non_lr_genes = non_lr_gene_names_df.sample(num_genes - num_lr_genes, random_state=self.seed)["gene"].tolist()
-
-            markers = non_lr_genes[:num_cell_types]
-            cell_type_markers = {}
-
-            for marker in markers:
-                simulated_df[marker] = np.nan
-
-            for i, cell_type in enumerate(cell_types):
-                cell_type_markers[cell_type] = markers[i]
-            
-            # Save cell_type_markers into a .json file
-            with open(f"{output_path}/{output_filename}_cell_type_markers.json", "w") as f:
-                json.dump(cell_type_markers, f)
-
-            for cell_type in cell_types:
-                n, p = get_n_p_from_mean_dispersion(mean_altered_expression, dispersion)
-                simulated_df.loc[cell_type, cell_type_markers[cell_type]] = nbinom.rvs(n, p, size=len(simulated_df.loc[cell_type, cell_type_markers[cell_type]]))
-
-            n,p = get_n_p_from_mean_dispersion(mean_expression, dispersion)
-            simulated_df = simulated_df.map(lambda x: nbinom.rvs(n, p) if pd.isna(x) else x)
-
-            # create new columns from non_lr_genes[num_cell_types:] and append it to the simulated_df with value of nbinom.rvs(n, p)
-            for gene in non_lr_genes[num_cell_types:]:
-                simulated_df[gene] = nbinom.rvs(n, p, size=len(simulated_df))            
+        cell_means = baseline_expressions * lib_size_factors[:, np.newaxis]
 
         if num_batch > 1:
-            cell_types = simulated_df.index
+            batch_effect_strength = overexpressed_mean * 2
+            batch_labels = np.random.choice(num_batch, size=num_cells)
 
-            # Generate batch based on num_batch
-            batch = np.random.choice(range(num_batch), len(cell_types))
+            batch_effect_matrix = np.zeros((num_batch, num_genes))
+            for batch in range(num_batch):
+                perturbed_genes = np.random.choice(
+                    num_genes, 
+                    size=batch_genes_per_batch, 
+                    replace=False
+                )
+                batch_effect_matrix[batch, perturbed_genes] = batch_effect_strength
 
-            modified_simulated_df = simulated_df.copy()
+            for i in range(num_cells):
+                batch = batch_labels[i]
+                cell_means[i, :] += batch_effect_matrix[batch, :]
 
-            simulated_df["batch"] = batch
+            cell_means = np.clip(cell_means, a_min=0, a_max=None)
 
-            if be_method == "shift_by_sd":
-                random_factors = np.random.uniform(0, 1, num_batch) * dispersion
-            
-            if be_method == "shift_by_mean":
-                random_factors = np.random.uniform(0, 1, num_batch) * mean_expression
+        baseline_mean_genes = np.where(gene_is_overexpressed > 0, overexpressed_mean, baseline_mean)
+        dispersion_genes = 1 / (baseline_mean_genes + 1) + 0.1
+        shape_genes = 1 / dispersion_genes
 
-            random_factors = [int(factor) for factor in random_factors]
+        scale_cell_gene = cell_means * dispersion_genes
+        lambda_cell_gene = np.random.gamma(shape=shape_genes, scale=scale_cell_gene)
+        counts = np.random.poisson(lambda_cell_gene)
 
-            # Save random_factors to a file
-            with open(f"{output_path}/{output_filename}_random_factors_for_be.json", "w") as f:
-                json.dump(random_factors, f)
+        log_mu = np.log(cell_means + 1e-6)
+        dropout_probs = 1 / (1 + np.exp(dropout_a * (log_mu - dropout_b)))
+        dropout_mask = bernoulli.rvs(dropout_probs).astype(bool)
+        counts[dropout_mask] = 0
 
-            modified_simulated_dfs = []
+        var = pd.DataFrame(index=all_genes)
+        obs = pd.DataFrame(index=cell_barcodes)
 
-            for i in range(num_batch):
+        obs["cell_type"] = cell_type_labels
 
-                # Multiplies the expression values of each batch by a factor (scaling)
-                if be_method == "scale":
-                    modified_simulated_df.loc[simulated_df["batch"] == i] = modified_simulated_df.loc[simulated_df["batch"] == i].astype(float) * (i + 1) * batch_factor
-
-                # Add by a random number sampled from normal distribution (shifting)
-                # Changing sd
-                if be_method == "shift_by_sd":
-
-                    random_vector = np.random.normal(batch_mean, random_factors[i], size=(modified_simulated_df.loc[simulated_df["batch"] == i].shape[1]))
-
-                    # Save random_vector to a file
-                    with open(f"{output_path}/{output_filename}_random_vector_for_be.json", "w") as f:
-                        json.dump(random_vector.tolist(), f)
-                    
-                    # Convert random_vector to int
-                    random_vector = [int(factor) for factor in random_vector]
-
-                    random_matrix = np.tile(random_vector, (modified_simulated_df.loc[simulated_df["batch"] == i].shape[0], 1))
-
-                    modified_simulated_df.loc[simulated_df["batch"] == i] += random_matrix
-                    
-                # Changing mean
-                if be_method == "shift_by_mean":
-                    
-                    random_vector = np.random.normal(random_factors[i] , batch_sd, size=(modified_simulated_df.loc[simulated_df["batch"] == i].shape[1]))
-
-                    # Save random_vector to a file
-                    with open(f"{output_path}/{output_filename}_random_vector_for_be.json", "w") as f:
-                        json.dump(random_vector.tolist(), f)
-                    
-                    # Convert random_vector to int
-                    random_vector = [int(factor) for factor in random_vector]
-
-                    random_matrix = np.tile(random_vector, (modified_simulated_df.loc[simulated_df["batch"] == i].shape[0], 1))
-
-                    modified_simulated_df.loc[simulated_df["batch"] == i] += random_matrix
-
-                # Add a constant value (shifting non random)
-                if be_method == "shift_by_constant":
-                    modified_simulated_df.loc[simulated_df["batch"] == i] = simulated_df.loc[simulated_df["batch"] == i].astype(float) + (i + 1) * batch_factor
-            
-            simulated_df.to_csv(f"{output_path}/{output_filename}_batches.csv")
-
-            batch_labels = simulated_df["batch"].to_list()
-            batch_label_df = pd.DataFrame(simulated_df["batch"])
-            batch_label_df.index = cell_labels
-
-            batch_label_df.to_csv(f"{output_path}/{output_filename}_batch_labels.csv")
-            simulated_df = modified_simulated_df.copy()
-
-            # Convert any negative values to 0
-            simulated_df[simulated_df < 0] = 0
-
-        # Drop batch column
-        simulated_df.index = cell_labels
-
-        adata = anndata.AnnData(simulated_df)
-        adata.obs["cell_type"] = cell_type_labels
-
+        adata = anndata.AnnData(
+            X=counts.astype(np.float32),  # Use float32 to save memory
+            obs=obs,
+            var=var
+        )
+        
         if num_batch > 1:
             adata.obs["batch"] = batch_labels
         else:
@@ -582,6 +600,8 @@ class DataGenerator():
             adata.obs["condition"] = 0
             
         adata.layers['counts'] = adata.X.copy()
+
+        return adata
 
         adata.write_h5ad(f'{output_path}/{output_filename}.h5ad')
 
@@ -612,19 +632,26 @@ class DataGenerator():
             "num_genes": num_genes,
             "num_lr_pairs": num_lr_pairs,
             "num_cell_types": num_cell_types,
+            "cell_type_proportions": cell_type_proportions,
+            "marker_genes_per_cell_type": marker_genes_per_cell_type,
             "method": method,
-            "overexpression_scale": overexpression_scale,
-            "mean_expression": mean_expression,
+            "communication_strength": communication_strength,
+            "baseline_mean": baseline_mean,
+            "marker_mean": marker_mean,
             "dispersion": dispersion,
+            "dropout_a": dropout_a,
+            "dropout_b": dropout_b,
+            "lib_size_mean": lib_size_mean,
+            "lib_size_sigma": lib_size_sigma,
             "num_batch": num_batch,
             "batch_factor": batch_factor,
+            "batch_genes_per_batch": batch_genes_per_batch,
             "batch_mean": batch_mean,
             "batch_sd": batch_sd,
             "be_method": be_method,
             "differential_interaction": differential_interaction,
             "output_path": output_path,
             "output_filename": output_filename,
-            "num_batch": num_batch,
             "scenario": scenario,
             "add_control": add_control
         }
@@ -638,7 +665,7 @@ class DataGenerator():
         cell_type_labels="cell_type",
         num_cells=None,
         num_lr_pairs=10,
-        overexpression_scale=1.25,
+        communication_strength=1.25,
         output_path="out",
         output_filename="synthetic_data",
         num_batch=1,
@@ -659,7 +686,7 @@ class DataGenerator():
             Number of cells to synthesize.
         num_lr_pairs : int
             Number of ligand-receptor pairs to synthesize.
-        overexpression_scale : float
+        communication_strength : float
             Scale factor for overexpressing ligand-receptor pairs.
         output_path : str
             Path to save the output file.
@@ -674,6 +701,18 @@ class DataGenerator():
         # if scenario == "remove_hvg":
         #     sc.pp.highly_variable_genes(adata)
         #     adata = adata[:, ~adata.var.highly_variable]
+
+        if cell_type_labels not in adata.obs:
+            raise ValueError(f"'{cell_type_labels}' not found in adata.obs.")
+        
+        if num_lr_pairs <= 0:
+            raise ValueError("num_lr_pairs must be > 0.")
+
+        if num_cells is not None and num_cells != adata.n_obs:
+            obs_indices = np.random.choice(adata.n_obs, num_cells, replace=False)
+            adata = adata[obs_indices, :].copy()
+
+        adata = adata.copy()
             
         # Find ligand and receptor genes in the anndata object
         lr_genes_in_matrix = self._find_lr_genes_intersection(adata)
@@ -695,14 +734,13 @@ class DataGenerator():
             
         adata.var_names = gene_names
 
-        lr_pairs = self._generate_lr_pairs(self.lr_pair_df, num_lr_pairs, gene_names)
+        lr_pairs = self._generate_lr_pairs(self.lr_pair_df, num_lr_pairs, output_path, gene_names)
 
         print(f"Found {len(lr_pairs)} eligible ligand-receptor out of {num_lr_pairs} pairs")
 
-        num_cell_types = adata.obs["cell_type"].nunique()
+        num_cell_types = adata.obs[cell_type_labels].nunique()
 
-        cell_types = adata.obs["cell_type"].unique()
-        cell_type_labels = adata.obs.cell_type.to_list()
+        cell_types = adata.obs[cell_type_labels].unique()
 
         # Generate source target pairs
         source_target_pairs = self._generate_source_target_pairs(num_cell_types)
@@ -745,9 +783,15 @@ class DataGenerator():
 
         synth_adata_lil = synth_adata.X.tolil()
 
+        # Generate negative binomial distribution for synth_adata_lil
+        n, p = get_n_p_from_mean_dispersion(10, 5)
+        for i, j in zip(*synth_adata_lil.nonzero()):
+            if synth_adata_lil[i, j] == 0:
+                synth_adata_lil[i, j] = nbinom.rvs(n, p)
+
         for row, col in unique_row_col_index_pairs:
             # There are some values that are having 0 expression so overexpressing them will result in 0 expression
-            synth_adata_lil[row, col] *= overexpression_scale
+            synth_adata_lil[row, col] *= communication_strength
 
         # Find all the columns where column_name is in lr_genes_in_matrix
         lr_genes_in_matrix = sorted(list(set(lr_genes_in_matrix)))
@@ -849,7 +893,7 @@ class DataGenerator():
             "reference_adata": adata.obs["cell_type"].nunique(),
             "num_cells": num_cells,
             "num_lr_pairs": num_lr_pairs,
-            "overexpression_scale": overexpression_scale,
+            "communication_strength": communication_strength,
             "output_path": output_path,
             "output_filename": output_filename,
             "num_batch": num_batch,

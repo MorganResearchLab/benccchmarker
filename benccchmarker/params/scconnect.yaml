@@ -1,0 +1,16 @@
+database:
+  version: "2020-5"
+
+params:
+  meanExpression:
+    normalization: FALSE
+    use_raw: TRUE
+    transformation: "log1p"
+  specificity:
+    n: 100
+    transformation: "log1p"
+    emperical: TRUE
+    merge_dist: FALSE
+  interactions:
+    self_reference: TRUE
+    corr_pval: 0.05

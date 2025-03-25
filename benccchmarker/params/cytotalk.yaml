@@ -1,0 +1,12 @@
+version: 0.99.9
+
+params:
+  run_cytotalk:
+    cutoff_a: 0.2
+    cutoff_b: 0.2
+    beta_max: 100
+    omega_min: 0.5
+    omega_max: 0.5
+    depth: 3
+    ntrial: 1000
+    cores: NULL

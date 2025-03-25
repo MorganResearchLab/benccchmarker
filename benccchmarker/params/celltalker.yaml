@@ -1,0 +1,8 @@
+version: 0.0.7.9000
+
+params:
+  celltalk:
+    number_cells_required: 100
+    min_expression: 1
+    max_expression: 20000
+    scramble_times: 10

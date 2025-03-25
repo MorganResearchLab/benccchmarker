@@ -19,8 +19,8 @@
             width: 100%;
             border-collapse: collapse;
             color: #171411;
-            border-radius: 2px; /* Add border radius to the table */
-            overflow: hidden; /* Ensure rounded corners are visible */
+            border-radius: 2px; 
+            overflow: hidden;
         }
         th, td {
             border: 1px solid #171411;
@@ -39,6 +39,7 @@
         .header-details p {
             margin: 2px;
         }
+        
     </style>
 </head>
 <body>
@@ -48,13 +49,12 @@
                 <h1>benCCChmarker Comparator Results</h1>
             </div>
             <div class="header-details">
-                <p><b>Dataset:</b> synthetic_data_trial_20240815.h5ad</h2>
-                <p><b>Date:</b> 2024-08-16</p>
-                <p><b>Setup:</b> Default</p>
-                <p><b>Start Time:</b> 2024-08-16</p>
-                <p><b>End Time:</b> 2024-08-16</p>
-                <p><b>Total Memory Cosumed:</b> 147 MB</p>
-                <p><b>Raw Output Path:</b> /Users/r04mr23/Documents/phd/morgan_lab/benccchmarker/benccchmarker/notebook/out/synthetic_20240815</p>
+                <p><b>Start Time:</b> $START_TIME</p>
+                <p><b>End Time:</b> $END_TIME</p>
+                <p><b>Input Data Path:</b> $DATA</p>
+                <p><b>Species:</b> $SPECIES</p>
+                <p><b>Platform:</b> $PLATFORM</p>
+                <p><b>Output Path:</b> $OUTPUT_PATH</p>
             </div>
         </div>
     
@@ -64,73 +64,29 @@
             <table id="runtime-summary-table" style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <th>Method</th>
-                    <th>Time</th>
-                    <th>Memory</th>
-                    <th>Predicted CCC Count</th>
-                    <th>Status</th>
+                    <th>Preprocessing Time (s)</th>
+                    <th>Inference Time (s)</th>
+                    <th> Peak Memory (MB)</th>
+                    <th>Inferred Interactions Count</th>
+
                 </tr>
-                <tr>
-                    <td>CellTalker</td>
-                    <td>25 s</td>
-                    <td>50MB</td>
-                    <td>76</td>
-                    <td>Success</td>
-                </tr>
-                <tr>
-                    <td>ScConnect</td>
-                    <td>36 s</td>
-                    <td>56 MB</td>
-                    <td>213</td>
-                    <td>Success</td>
-                </tr>
-                <tr>
-                    <td>CellChat</td>
-                    <td>1 m 53 s</td>
-                    <td>147 MB</td>
-                    <td>267</td>
-                    <td>Success</td>
-                </tr>
+                $METHOD_RUNTIMES
             </table>
         </div>
 
         <div id="inference-results">
-            <h2>Inference Results (Consensus)</h2>
+            <h2>Top 10 Inferred Interactions by Consensus</h2>
             <!--Create table with these columns ligand, receptor, predicted by n methods, confidence-->
             <table id="inference-results-table" style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <th>Source</th>
-                    <th>Target</th>
                     <th>Ligand</th>
+                    <th>Target</th>
                     <th>Receptor</th>
                     <th>Predicted by N Methods</th>
-                    <th>Confidence</th>
                 </tr>
-                <tr>
-                    <td>epi_SOX9_LGR5</td>
-                    <td>Fibroblast eS</td>
-                    <td>GDF5</td>
-                    <td>BMPR1A_BMPR2</td>
-                    <td>3</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Myeloid</td>
-                    <td>epi_SOX9</td>
-                    <td>CCL22</td>
-                    <td>ACKR2</td>
-                    <td>3</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>epi_SOX9_LGR5</td>
-                    <td>Receptor 3</td>
-                    <td>3</td>
-                    <td></td>
-                </tr>
+                $TOP_10_INFERENCE_RESULTS
             </table>
-        </div>
-        <div>
-            <p>Circos Plot https://github.com/nicgirault/circosJS</p>
         </div>
         <div>
             <h2>Prediction similarity</h2>
